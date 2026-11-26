@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="Pi Agent 求职篇：四列框架对照表、十二主题面试知识图谱、三个作品集项目与“为什么学 pi”答辩词。">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    >
+    <title>求职篇 · Pi Agent 面试与作品集</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f6f7fb;
+        --surface: #fff;
+        --surface-2: #f0f3fa;
+        --ink: #20263a;
+        --muted: #58627a;
+        --line: #dce2ef;
+        --brand: #4e54c8;
+        --brand-dark: #353b9f;
+        --brand-wash: #eceeff;
+        --green: #176b4b;
+        --green-wash: #e8f6ef;
+        --orange: #814900;
+        --orange-wash: #fff4df;
+        --red: #a3293d;
+        --red-wash: #fff0f2;
+        --focus-ring: #875600;
+        --code: #171b2b;
+        --code-ink: #e9edff;
+        --shadow: 0 16px 42px rgb(38 48 89 / 8%);
+        --radius: 18px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        scroll-behavior: smooth;
+        scroll-padding-top: 1.5rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #111522;
+          --surface: #1a2030;
+          --surface-2: #222a3d;
+          --ink: #eef1ff;
+          --muted: #b3bdd4;
+          --line: #343e56;
+          --brand: #a5a9ff;
+          --brand-dark: #d2d4ff;
+          --brand-wash: #292e4e;
+          --green: #80d6ad;
+          --green-wash: #18382e;
+          --orange: #ffd27f;
+          --orange-wash: #3a2e1c;
+          --red: #ff9aa8;
+          --red-wash: #3b2029;
+          --focus-ring: #ffd27f;
+          --code: #10131d;
+          --code-ink: #edf0ff;
+          --shadow: 0 16px 42px rgb(0 0 0 / 24%);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-inline-size: 320px;
+        background: var(--page);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse at 84% 0%, rgb(103 111 224 / 10%), transparent 36rem),
+          var(--page);
+        font-size: 1rem;
+        line-height: 1.72;
+      }
+
+      a {
+        color: var(--brand-dark);
+        text-underline-offset: 0.2em;
+        text-decoration-thickness: 1px;
+      }
+
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+
+      :where(a, button, input, summary):focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 20;
+        inset-block-start: 0.75rem;
+        inset-inline-start: 0.75rem;
+        padding: 0.65rem 1rem;
+        transform: translateY(-160%);
+        border-radius: 0.5rem;
+        color: #fff;
+        background: #20263a;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .reading-progress {
+        position: fixed;
+        z-index: 15;
+        inset: 0 0 auto;
+        block-size: 4px;
+        background: transparent;
+      }
+
+      .reading-progress span {
+        display: block;
+        inline-size: 0;
+        block-size: 100%;
+        background: linear-gradient(90deg, #686ee6, #17a87b);
+      }
+
+      .page-shell {
+        display: grid;
+        grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+        gap: clamp(1.25rem, 3vw, 3rem);
+        inline-size: min(1440px, 100%);
+        margin-inline: auto;
+        padding: clamp(1rem, 3vw, 2.75rem);
+      }
+
+      .side-rail {
+        position: sticky;
+        inset-block-start: 1.5rem;
+        align-self: start;
+        max-block-size: calc(100dvh - 3rem);
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-block-end: 0.5rem;
+        color: var(--ink);
+        font-size: 1.03rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        inline-size: 2.3rem;
+        aspect-ratio: 1;
+        place-items: center;
+        border-radius: 0.75rem;
+        color: #fff;
+        background: linear-gradient(135deg, #686ee6, #2c9d83);
+        font-weight: 900;
+      }
+
+      .rail-caption {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .toc-title {
+        margin: 1rem 0 0.4rem;
+        color: var(--muted);
+        font-size: 0.73rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .toc {
+        display: grid;
+        gap: 0.2rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .toc a {
+        display: block;
+        padding: 0.48rem 0.65rem;
+        border-radius: 0.6rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        text-decoration: none;
+      }
+
+      .toc a:hover,
+      .toc a[aria-current="location"] {
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+      }
+
+      .rail-note {
+        margin-block-start: 1.25rem;
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        color: var(--muted);
+        font-size: 0.79rem;
+      }
+
+      .page-links {
+        display: grid;
+        gap: 0.25rem;
+        margin-block: 0.75rem 1rem;
+      }
+
+      .page-links a {
+        display: block;
+        padding: 0.42rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .page-links a:hover,
+      .page-links a[aria-current="page"] {
+        border-color: var(--brand);
+        background: var(--brand-wash);
+      }
+
+      main {
+        min-inline-size: 0;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(1.5rem, 5vw, 4rem);
+        border: 1px solid var(--line);
+        border-radius: calc(var(--radius) + 4px);
+        background:
+          radial-gradient(circle at 86% 20%, rgb(93 102 219 / 18%), transparent 16rem),
+          var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 0.7rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--ink);
+        line-height: 1.25;
+        text-wrap: balance;
+      }
+
+      h1 {
+        max-inline-size: 17ch;
+        margin: 1.1rem 0 0.85rem;
+        font-size: clamp(2.15rem, 5vw, 4.3rem);
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin-block: 0 1rem;
+        font-size: clamp(1.55rem, 3vw, 2.2rem);
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin-block: 1.8rem 0.65rem;
+        font-size: 1.24rem;
+      }
+
+      h4 {
+        margin-block: 1.25rem 0.45rem;
+        font-size: 1.05rem;
+      }
+
+      p {
+        margin-block: 0.65rem 1rem;
+      }
+
+      .hero-lede {
+        max-inline-size: 66ch;
+        color: var(--muted);
+        font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-block-start: 1.4rem;
+      }
+
+      .button {
+        display: inline-flex;
+        min-block-size: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 1rem;
+        border: 1px solid var(--brand);
+        border-radius: 0.7rem;
+        color: #fff;
+        background: #4e54c8;
+        font: inherit;
+        font-weight: 750;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .button.secondary {
+        color: var(--brand-dark);
+        background: var(--surface);
+      }
+
+      .hero-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.2rem;
+        margin-block-start: 1.5rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .section {
+        margin-block-start: 1.5rem;
+        padding: clamp(1.2rem, 3vw, 2.35rem);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        scroll-margin-block-start: 1rem;
+      }
+
+      .chapter-kicker {
+        margin-block-end: 0.4rem;
+        color: var(--brand-dark);
+        font-size: 0.78rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .lede {
+        max-inline-size: 75ch;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .callout {
+        margin-block: 1rem;
+        padding: 1rem 1.1rem;
+        border-inline-start: 4px solid var(--brand);
+        border-radius: 0 0.7rem 0.7rem 0;
+        background: var(--brand-wash);
+      }
+
+      .callout p:last-child {
+        margin-block-end: 0;
+      }
+
+      .callout.good {
+        border-color: var(--green);
+        background: var(--green-wash);
+      }
+
+      .callout.caution {
+        border-color: #d58a17;
+        background: var(--orange-wash);
+      }
+
+      .callout.danger {
+        border-color: var(--red);
+        background: var(--red-wash);
+      }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 0.85rem;
+        margin-block: 1rem;
+      }
+
+      .card {
+        min-inline-size: 0;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        background: var(--surface);
+      }
+
+      .card h3,
+      .card h4 {
+        margin-block-start: 0;
+      }
+
+      .card p:last-child {
+        margin-block-end: 0;
+      }
+
+      .step-number {
+        display: inline-grid;
+        inline-size: 1.8rem;
+        aspect-ratio: 1;
+        place-items: center;
+        margin-inline-end: 0.35rem;
+        border-radius: 50%;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.86rem;
+        font-weight: 850;
+      }
+
+      figure {
+        margin: 1.25rem 0;
+      }
+
+      figcaption {
+        margin-block-start: 0.55rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .diagram {
+        overflow-x: auto;
+        padding: 1.15rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background:
+          linear-gradient(135deg, var(--surface-2), var(--surface));
+      }
+
+      .diagram svg {
+        display: block;
+        inline-size: 100%;
+        min-inline-size: 640px;
+        block-size: auto;
+      }
+
+      .diagram text {
+        fill: var(--ink);
+        font-family: inherit;
+        font-size: 15px;
+      }
+
+      .diagram .small {
+        fill: var(--muted);
+        font-size: 12px;
+      }
+
+      .diagram .node {
+        fill: var(--surface);
+        stroke: var(--brand);
+        stroke-width: 2;
+      }
+
+      .diagram .node-green {
+        fill: var(--green-wash);
+        stroke: var(--green);
+        stroke-width: 2;
+      }
+
+      .diagram .node-orange {
+        fill: var(--orange-wash);
+        stroke: #bd7810;
+        stroke-width: 2;
+      }
+
+      .diagram .arrow {
+        fill: none;
+        stroke: var(--brand);
+        stroke-width: 2.5;
+      }
+
+      .diagram .arrow-muted {
+        fill: none;
+        stroke: #7a849d;
+        stroke-width: 2;
+      }
+
+      .diagram marker path {
+        fill: var(--brand);
+      }
+
+      .diagram marker#muted-arrowhead path,
+      .diagram marker#event-muted-arrowhead path {
+        fill: #7a849d;
+      }
+
+      #learning-map-diagram .arrow {
+        marker-end: url("#learning-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow {
+        marker-end: url("#loop-arrowhead");
+      }
+
+      #prompt-diagram .arrow {
+        marker-end: url("#prompt-arrowhead");
+      }
+
+      #tool-diagram .arrow {
+        marker-end: url("#tool-arrowhead");
+      }
+
+      #event-diagram .arrow {
+        marker-end: url("#event-arrowhead");
+      }
+
+      #session-diagram .arrow {
+        marker-end: url("#session-arrowhead");
+      }
+
+      #web-diagram .arrow {
+        marker-end: url("#web-arrowhead");
+      }
+
+      #arch-diagram .arrow {
+        marker-end: url("#arch-arrowhead");
+      }
+
+      #lifecycle-diagram .arrow {
+        marker-end: url("#life-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow-muted {
+        marker-end: url("#muted-arrowhead");
+      }
+
+      #event-diagram .arrow-muted {
+        marker-end: url("#event-muted-arrowhead");
+      }
+
+      .diagram-description {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .code-card {
+        margin-block: 1rem;
+        overflow: hidden;
+        border: 1px solid #30384e;
+        border-radius: 0.9rem;
+        background: var(--code);
+        color: var(--code-ink);
+      }
+
+      .code-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.55rem 0.8rem;
+        border-block-end: 1px solid #343c52;
+        color: #bfc8e3;
+        font-size: 0.76rem;
+      }
+
+      .copy-button {
+        min-block-size: 2rem;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid #68718a;
+        border-radius: 0.45rem;
+        color: #f5f6ff;
+        background: #242a3b;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      pre {
+        max-inline-size: 100%;
+        margin: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1rem;
+        color: var(--code-ink);
+        font: 0.86rem/1.62 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        tab-size: 2;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 0.91em;
+      }
+
+      p code,
+      li code,
+      td code {
+        overflow-wrap: anywhere;
+        padding: 0.12em 0.34em;
+        border: 1px solid var(--line);
+        border-radius: 0.33rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+      }
+
+      .code-card pre code {
+        padding: 0;
+        border: 0;
+        color: inherit;
+        background: transparent;
+        font-size: inherit;
+      }
+
+      .line-note {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.28fr) minmax(0, 1fr);
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border-block-start: 1px solid #343c52;
+        color: #c4cbe0;
+        font-size: 0.82rem;
+      }
+
+      .line-note strong {
+        color: #aeb4ff;
+      }
+
+      .table-wrap {
+        max-inline-size: 100%;
+        margin-block: 1rem;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+      }
+
+      table {
+        inline-size: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+
+      caption {
+        padding: 0.75rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: start;
+      }
+
+      th,
+      td {
+        min-inline-size: 8rem;
+        padding: 0.7rem 0.8rem;
+        border-block-start: 1px solid var(--line);
+        text-align: start;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--ink);
+        background: var(--surface-2);
+      }
+
+      td {
+        color: var(--muted);
+      }
+
+      .exercise {
+        margin-block: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        background: var(--surface);
+      }
+
+      .exercise > summary {
+        padding: 0.85rem 1rem;
+        color: var(--brand-dark);
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .exercise-body {
+        padding: 0 1rem 1rem;
+      }
+
+      .exercise-body > :last-child {
+        margin-block-end: 0;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-block: 1rem;
+      }
+
+      .tag {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface-2);
+        font-size: 0.78rem;
+      }
+
+      .source-list {
+        display: grid;
+        gap: 0.45rem;
+        padding-inline-start: 1.25rem;
+      }
+
+      .source-list li {
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-block: 1.5rem 3rem;
+        padding: 1.2rem;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 900px) {
+        .page-shell {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 1rem;
+          padding: 0.75rem;
+        }
+
+        .side-rail {
+          position: relative;
+          inset-block-start: auto;
+          max-block-size: none;
+          padding: 0.8rem;
+        }
+
+        .rail-note,
+        .toc-title {
+          display: none;
+        }
+
+        .toc {
+          display: flex;
+          gap: 0.35rem;
+          overflow-x: auto;
+          padding-block: 0.45rem 0.1rem;
+          scrollbar-width: thin;
+        }
+
+        .toc li {
+          flex: 0 0 auto;
+        }
+
+        .toc a {
+          border: 1px solid var(--line);
+          background: var(--surface);
+          white-space: nowrap;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .hero {
+          padding: 1.3rem;
+        }
+
+        .section {
+          padding: 1rem;
+        }
+
+        .line-note {
+          grid-template-columns: 1fr;
+          gap: 0.1rem;
+        }
+
+        pre {
+          font-size: 0.78rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media (forced-colors: active) {
+        .brand-mark,
+        .button:not(.secondary) {
+          border: 1px solid ButtonText;
+        }
+
+        .diagram .node,
+        .diagram .node-green,
+        .diagram .node-orange {
+          fill: Canvas;
+          stroke: CanvasText;
+        }
+
+        .diagram .arrow,
+        .diagram .arrow-muted {
+          stroke: CanvasText;
+        }
+
+        .diagram marker path {
+          fill: CanvasText;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到教程正文</a>
+    <div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div>
+
+    <div class="page-shell">
+      <aside class="side-rail" aria-label="教程目录">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true">π</span>
+          <span>Pi Agent 入门实验室</span>
+        </a>
+        <p class="rail-caption">从看懂代码，到做出自己的 Agent</p>
+
+        <div class="page-links">
+          <a href="index.html">入门篇 · 九节课</a>
+          <a href="cli.html">进阶篇 · CLI 与扩展</a>
+          <a href="advanced.html">高级篇 · 模式与内部</a>
+          <a href="sdk.html">SDK 深入 · 扩展/Skill/MCP</a>
+          <a href="web.html">实战篇 · 多用户 Web</a>
+          <a href="production.html">生产篇 · 上线交付</a>
+          <a href="career.html" aria-current="page">求职篇 · 面试与作品集</a>
+        </div>
+
+        <p class="toc-title">学习路线</p>
+        <nav aria-label="章节导航">
+          <ol class="toc">
+            <li><a href="#career-map">01 · 框架对照</a></li>
+            <li><a href="#career-interview">02 · 面试知识图谱</a></li>
+            <li><a href="#career-portfolio">03 · 三个作品集项目</a></li>
+            <li><a href="#career-defense">04 · “为什么学 pi”答辩词</a></li>
+            <li><a href="production.html">回生产篇 →</a></li>
+            <li><a href="index.html">回入门篇 →</a></li>
+          </ol>
+        </nav>
+
+        <div class="rail-note">
+          本教程按 <strong>pi-coding-agent 1.6.1</strong> 编写。网页可离线阅读；调用模型需要你自己的 API Key。
+        </div>
+      </aside>
+
+        <main id="main-content" tabindex="-1">
+
+<header class="hero" id="top">
+          <span class="eyebrow">求职篇 · 把学习变成 offer</span>
+          <h1>面试与作品集</h1>
+          <p class="hero-lede">
+            面试官不考 pi，考的是你有没有把引擎原理内化成可迁移的能力。这一册没有新代码：
+            一张四列框架对照表、一张面试知识图谱、三个作品集项目的写法，和一段“为什么用 pi 学 Agent”的答辩词。
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#career-map">看对照表</a>
+            <a class="button secondary" href="production.html">回生产篇</a>
+          </div>
+          <div class="hero-facts" aria-label="教程信息">
+            <span>前置：入门到生产全部七册</span>
+            <span>用法：面试前重读，别背题，背“落点”</span>
+          </div>
+        </header>
+
+        <section class="section" id="career-map" aria-labelledby="career-map-title">
+          <p class="chapter-kicker">求职篇 01 · 框架对照</p>
+          <h2 id="career-map-title">你学的不是 pi，是这张表的左列</h2>
+          <p class="lede">
+            高级篇 G.1 的对照表只有 pi 一列，这一节补全。面试时被问“你用过 LangGraph / OpenAI Agents SDK 吗”，正确的回答方式是：“底层概念一致，我按概念对应过去”。pi 在这里的角色是<strong>参照实现</strong>——你读过它的循环源码，其他框架的同名概念你都能映射。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <caption>通用概念 × pi × 主流框架（概念级映射，各家 API 迭代快，以官方文档为准）</caption>
+              <thead><tr><th scope="col">通用概念</th><th scope="col">pi 里的对应（教程落点）</th><th scope="col">LangGraph 里的常见叫法</th><th scope="col">OpenAI Agents SDK / Vercel AI SDK</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Agent 循环</th><td>run / turn 双层循环（第 03 课、高级篇 J.3）</td><td>图节点 + 边，StateGraph 循环</td><td>Agent Runner / AI SDK 的多步 generate</td></tr>
+                <tr><th scope="row">工具调用</th><td>defineTool + TypeBox schema + execute（第 06 课）</td><td>@tool / ToolNode</td><td>tool() + zod schema</td></tr>
+                <tr><th scope="row">护栏与审批</th><td>tool_call 门控 block（第 07 课、生产篇 6.4）</td><td>interrupt() 人机回路</td><td>工具审批回调 / needApproval</td></tr>
+                <tr><th scope="row">上下文工程</th><td>系统提示词分层、AGENTS.md（第 05 课、高级篇 G.2）</td><td>prompt 模板 / trim_messages</td><td>system prompt / prepareMessages</td></tr>
+                <tr><th scope="row">上下文压缩</th><td>compaction：摘要 + 保留窗口（进阶篇 C.3）</td><td>summarization 节点</td><td>summarization 中间件</td></tr>
+                <tr><th scope="row">记忆分层</th><td>上下文 / 会话树 / 长期条目（高级篇 G.3）</td><td>checkpointer + store</td><td>conversation memory</td></tr>
+                <tr><th scope="row">会话持久化</th><td>SessionManager 文件 + 恢复（生产篇 6.3）</td><td>checkpointer（SQLite/Postgres）</td><td>会话存储（自选后端）</td></tr>
+                <tr><th scope="row">流式事件协议</th><td>12 种流事件 + delta/end 黄金规则（高级篇 K）</td><td>astream_events</td><td>fullStream / textStream</td></tr>
+                <tr><th scope="row">并发语义</th><td>busy 拒绝 / steer / followUp（第 09 课、生产篇 6.2）</td><td>interrupt + resume、队列节点</td><td>续写与排队（SDK 层实现）</td></tr>
+                <tr><th scope="row">评测</th><td>评测金字塔 + CI 门禁（高级篇 H.4）</td><td>LangSmith 数据集 + evals</td><td>evals 框架</td></tr>
+                <tr><th scope="row">观测</th><td>三层观测面 + OTLP 导出（高级篇 H、生产篇 6.5）</td><td>LangSmith / OTel</td><td>OTel spans</td></tr>
+                <tr><th scope="row">多租户隔离</th><td>一人一会话 + 行级授权（第 08 课、生产篇 6.1/6.3）</td><td>thread_id per user + 命名空间</td><td>session per user</td></tr>
+                <tr><th scope="row">外部工具协议</th><td>MCP 接入与暴露控制（进阶篇 D.4、SDK 深入篇 04）</td><td>MCP adapters</td><td>MCP 支持</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>怎么用这张表：</strong>
+            面试前把每一行的“教程落点”在脑子里过一遍源码位置。被问到某框架的具体类名答不上来不丢分，丢分的是把左列的概念讲错——那才是“只会调包”的信号。
+          </div>
+        </section>
+
+        <section class="section" id="career-interview" aria-labelledby="career-interview-title">
+          <p class="chapter-kicker">求职篇 02 · 面试知识图谱</p>
+          <h2 id="career-interview-title">十二个必考主题：一句话回答 + 追问链</h2>
+          <p class="lede">
+            每个主题给你“面试版一句话”和面试官最可能的追问链。回答的底气全部来自教程落点——追问到第几层，取决于你把那份源码读到第几层。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <caption>面试知识图谱（追问链按深度排列）</caption>
+              <thead><tr><th scope="col">主题</th><th scope="col">面试版一句话</th><th scope="col">高频追问链</th><th scope="col">教程落点</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Agent Loop</th><td>Agent 是“模型请求→工具调用→结果回填→再请求”的循环，不是一次 API 调用；turn 的终止条件是本轮没有工具调用。</td><td>怎么防死循环？→ 工具结果坏了怎么办？→ stopReason=length 为什么标记错误？</td><td>第 03 课、高级篇 J.3/J.5</td></tr>
+                <tr><th scope="row">上下文工程</th><td>上下文是每次请求的稀缺租期，按系统提示词/工具声明/历史/工具结果/输出预留五块分开管理。</td><td>哪块最大？→ 怎么持续审计？→ 压缩怎么工作？</td><td>高级篇 G.2、进阶篇 C.3</td></tr>
+                <tr><th scope="row">提示词缓存</th><td>缓存按前缀命中，系统提示词一个字符变化就打穿；静态放前缀，每请求变化的放消息尾部。</td><td>怎么证明？→ 隐藏成本有哪些？</td><td>第 05 课踩坑、高级篇 H.3</td></tr>
+                <tr><th scope="row">长对话</th><td>自动压缩在下一轮请求前触发，摘要是有损的，关键约束要放每次都完整加载的位置。</td><td>切分点为什么不能落在工具结果上？→ 摘要失败了怎么办？</td><td>进阶篇 C.3/C.4</td></tr>
+                <tr><th scope="row">工具安全</th><td>模型提议、我的代码执行；参数校验在扩展钩子之前，硬上限必须在 execute 里再查一次。</td><td>拦截和观察的区别？→ 被拦截的调用有什么事件？→ 审计怎么绕坑？</td><td>第 07 课、高级篇 J.5/H.1</td></tr>
+                <tr><th scope="row">流式输出</th><td>delta 只管渲染，end 才负责正确；落库计费以 message_end 为准。</td><td>并行工具调用事件交错怎么配对？→ 客户端断开呢？</td><td>高级篇 K.1/K.2、实战篇 02</td></tr>
+                <tr><th scope="row">并发与排队</th><td>同一会话同时只有一个 run；忙时要么排队要么插话，必须显式选，SDK 拒绝替你猜。</td><td>“看起来空闲其实忙”的窗口？→ 409 和排队怎么选？</td><td>第 02 课踩坑、高级篇 J.1、生产篇 6.2</td></tr>
+                <tr><th scope="row">评测</th><td>四层金字塔：工具单测→会话集成→提示词回归→全链路冒烟；提示词、工具描述、模型版本任一变更必须重跑。</td><td>怎么过 CI 门禁？→ 非确定性怎么压？</td><td>高级篇 H.4</td></tr>
+                <tr><th scope="row">成本治理</th><td>三笔隐藏的钱（压缩摘要、缓存预热、失败重试）+ 模型分级 + 缓存命中率；先有账单才有预算。</td><td>按租户出账的数据从哪来？→ 怎么降？</td><td>高级篇 H.3/I.5、生产篇 6.5</td></tr>
+                <tr><th scope="row">提示注入</th><td>文件、网页、命令输出都可能是注入源；防线是工具最小暴露 + 服务端授权 + 沙箱，不是“提示词求它别做”。</td><td>为什么 project trust 不是安全边界？→ 你的沙箱方案？</td><td>进阶篇 A.9/F.1-F.3</td></tr>
+                <tr><th scope="row">多租户隔离</th><td>一人一会话 + 每次工具执行做行级授权；共享会话等于共享记忆，这是应用层 bug，不是提示词问题。</td><td>怎么证明隔离生效？→ 凭据怎么按人注入？</td><td>第 08 课、高级篇 I.2/I.3、生产篇 6.1</td></tr>
+                <tr><th scope="row">MCP</th><td>把外部服务标准化成工具的协议；工具名有命名空间，来源要审查，暴露面要控制。</td><td>SDK 会话里为什么工具不出现？→ deferred 暴露是什么？</td><td>进阶篇 D.4、SDK 深入篇 02/04</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout good">
+            <strong>检查点：</strong>
+            随机挑一行，合上页面把“一句话 + 追问链第一层”讲出声。讲不顺的行，回到落点重读——这就是这份教程每课“检查点”设计的意义。
+          </div>
+        </section>
+
+        <section class="section" id="career-portfolio" aria-labelledby="career-portfolio-title">
+          <p class="chapter-kicker">求职篇 03 · 作品集</p>
+          <h2 id="career-portfolio-title">三个项目：从教程产物到简历条目</h2>
+          <p class="lede">
+            面试官平均看一份项目 90 秒，所以每个项目要有“一句简历话 + 三个可演示点 + 一个架构决策故事”。下面三个项目全部源自这套教程的产物，只差包装。
+          </p>
+          <div class="card-grid">
+            <article class="card">
+              <h4>项目 A · 多租户 Agent 服务</h4>
+              <p>生产篇 6.1–6.6 的完整产物：SSE 流式、按用户持久化、串行队列、trace/usage 落盘、容器交付。</p>
+              <p><strong>简历句式：</strong>“基于 pi SDK 构建多用户流式 Agent 服务：JWT 认证、按用户会话持久化与恢复、忙时排队、断连自动取消，trace/成本按租户落盘，容器化交付。”</p>
+              <p><strong>演示点：</strong>两窗口两用户互不可见；断连即停（trace 里 aborted: true）；SIGTERM 优雅退出日志。</p>
+              <p><strong>决策故事：</strong>为什么 409 改排队、为什么同步占坑——讲“看起来空闲其实忙”的竞态与修复。</p>
+            </article>
+            <article class="card">
+              <h4>项目 B · 带审批的写操作 Agent</h4>
+              <p>生产篇 6.4 + 自选扩展：把 create_ticket 换成真实业务（如订单退款、数据订正），加幂等键与失败补偿。</p>
+              <p><strong>简历句式：</strong>“实现 human-in-the-loop 工具审批流：tool_call 挂起、SSE 推卡、超时 fail-closed；写操作幂等，失败可补偿。”</p>
+              <p><strong>演示点：</strong>审批卡到执行的完整时序；超时自动拒绝；越权审批被 404 拒绝。</p>
+              <p><strong>决策故事：</strong>为什么审批在扩展钩子而不是 subscribe 里做——观察通道与门控契约的源码级区别。</p>
+            </article>
+            <article class="card">
+              <h4>项目 C · MCP 工具服务器与受控接入</h4>
+              <p>自己写一个 MCP 服务器（如公司内部知识库检索），接进 DataAgent，用暴露控制（deferred + tool_search）管理工具面。</p>
+              <p><strong>简历句式：</strong>“开发内部知识库 MCP 服务器并接入 Agent：工具命名空间隔离、按需加载暴露控制、来源审查与最小权限清单。”</p>
+              <p><strong>演示点：</strong>mcp__前缀工具的发现与调用；deferred 暴露前后 getActiveToolNames 对比。</p>
+              <p><strong>决策故事：</strong>为什么检索做成工具而不是塞进系统提示词——上下文预算与按需加载的账（高级篇 G.2）。</p>
+            </article>
+          </div>
+          <div class="callout">
+            <strong>仓库的门面：</strong>
+            三个项目一个 monorepo 就够。<code>README</code> 按架构决策记录（ADR）写：问题、选项、决策、验证结果。评测集挂 CI 的徽章放在最显眼的位置——“有评测门禁”是候选人信号里最稀缺的一个。
+          </div>
+        </section>
+
+        <section class="section" id="career-defense" aria-labelledby="career-defense-title">
+          <p class="chapter-kicker">求职篇 04 · 答辩词</p>
+          <h2 id="career-defense-title">“为什么你学的是 pi，不是 LangChain？”</h2>
+          <p class="lede">
+            这道题几乎必来。标准答案有三层，全部是事实：
+          </p>
+          <p>
+            <strong>第一层，我学的是引擎不是框架。</strong>
+            我通读过 pi 的 agent loop、会话树、压缩和扩展系统的源码——run 和 turn 怎么终止、压缩为什么切在下一轮请求前、工具参数校验为什么在扩展钩子之前，这些是任何框架都绕不开的底层问题。换框架是换 API，不换原理。
+          </p>
+          <p>
+            <strong>第二层，pi 是最接近“生产引擎”的教材。</strong>
+            它是单进程单循环的设计，把多租户、凭据、限流、持久化全部留给我——这正是企业级工程师真正要写的那一层。LangChain 类框架替你做了太多决定，学它容易把“框架用户”误当“系统能力”。
+          </p>
+          <p>
+            <strong>第三层，概念我可以当天映射过去。</strong>
+            框架对照表（本册 01）就是证明：门控对应 interrupt，会话持久化对应 checkpointer，评测对应 evals。给我一周，我交付的是同一层抽象下的另一个实现。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <caption>投递前自检清单</caption>
+              <thead><tr><th scope="col">自检问题</th><th scope="col">合格标准</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">能不看资料讲清 run/turn/agent_settled 的区别吗？</th><td>能，且能画出来</td></tr>
+                <tr><th scope="row">作品集三个项目都能现场跑吗？</th><td>能，含故障演练</td></tr>
+                <tr><th scope="row">评测门禁在 CI 里真的红过吗？</th><td>红过（故意改坏提示词录屏/截图）</td></tr>
+                <tr><th scope="row">能说出一次真实踩坑的源码级原因吗？</th><td>能（推荐：409 竞态或缓存打穿）</td></tr>
+                <tr><th scope="row">框架对照表的左列能默写吗？</th><td>12 行里至少 8 行</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout good">
+            <strong>最后一句话：</strong>
+            这套教程从头到尾在训练同一件事——每一层负责什么、出问题去哪一层找。面试里最值钱的话不是“我用过 X”，而是“这个问题出在会话层，我用 trace 证明了它”。去把这句话变成你的。
+          </div>
+        </section>
+
+        <footer class="footer">
+          <p>学 Pi Agent 的目标不是背 API，而是知道每一层负责什么、出问题该去哪一层找。</p>
+          <p><a href="#top">回到页面顶部 ↑</a></p>
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      const progressBar = document.querySelector("#progress-bar");
+      const tocLinks = [...document.querySelectorAll(".toc a")];
+      const sections = tocLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      function updateReadingProgress() {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+        progressBar.style.inlineSize = `${Math.min(100, Math.max(0, progress))}%`;
+      }
+
+      window.addEventListener("scroll", updateReadingProgress, { passive: true });
+      window.addEventListener("resize", updateReadingProgress);
+      updateReadingProgress();
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            for (const link of tocLinks) {
+              if (link.getAttribute("href") === `#${visible.target.id}`) {
+                link.setAttribute("aria-current", "location");
+              } else {
+                link.removeAttribute("aria-current");
+              }
+            }
+          },
+          { rootMargin: "-12% 0px -72% 0px", threshold: [0, 0.25, 0.5] },
+        );
+        for (const section of sections) observer.observe(section);
+      }
+
+      for (const button of document.querySelectorAll(".copy-button")) {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-card")?.querySelector("pre code")?.textContent;
+          if (!code) return;
+          try {
+            await navigator.clipboard.writeText(code);
+            button.textContent = "已复制";
+            window.setTimeout(() => {
+              button.textContent = "复制";
+            }, 1400);
+          } catch {
+            button.textContent = "请手动选择代码";
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
+

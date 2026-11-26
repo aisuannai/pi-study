@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="Pi Agent 多用户 Web 服务实战：Node 原生 http + SSE，按用户隔离的会话注册表、白名单事件流、断连自动取消与升级路线。">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    >
+    <title>实战篇 · Pi Agent 多用户 Web 服务（完整实现）</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f6f7fb;
+        --surface: #fff;
+        --surface-2: #f0f3fa;
+        --ink: #20263a;
+        --muted: #58627a;
+        --line: #dce2ef;
+        --brand: #4e54c8;
+        --brand-dark: #353b9f;
+        --brand-wash: #eceeff;
+        --green: #176b4b;
+        --green-wash: #e8f6ef;
+        --orange: #814900;
+        --orange-wash: #fff4df;
+        --red: #a3293d;
+        --red-wash: #fff0f2;
+        --focus-ring: #875600;
+        --code: #171b2b;
+        --code-ink: #e9edff;
+        --shadow: 0 16px 42px rgb(38 48 89 / 8%);
+        --radius: 18px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        scroll-behavior: smooth;
+        scroll-padding-top: 1.5rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #111522;
+          --surface: #1a2030;
+          --surface-2: #222a3d;
+          --ink: #eef1ff;
+          --muted: #b3bdd4;
+          --line: #343e56;
+          --brand: #a5a9ff;
+          --brand-dark: #d2d4ff;
+          --brand-wash: #292e4e;
+          --green: #80d6ad;
+          --green-wash: #18382e;
+          --orange: #ffd27f;
+          --orange-wash: #3a2e1c;
+          --red: #ff9aa8;
+          --red-wash: #3b2029;
+          --focus-ring: #ffd27f;
+          --code: #10131d;
+          --code-ink: #edf0ff;
+          --shadow: 0 16px 42px rgb(0 0 0 / 24%);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-inline-size: 320px;
+        background: var(--page);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse at 84% 0%, rgb(103 111 224 / 10%), transparent 36rem),
+          var(--page);
+        font-size: 1rem;
+        line-height: 1.72;
+      }
+
+      a {
+        color: var(--brand-dark);
+        text-underline-offset: 0.2em;
+        text-decoration-thickness: 1px;
+      }
+
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+
+      :where(a, button, input, summary):focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 20;
+        inset-block-start: 0.75rem;
+        inset-inline-start: 0.75rem;
+        padding: 0.65rem 1rem;
+        transform: translateY(-160%);
+        border-radius: 0.5rem;
+        color: #fff;
+        background: #20263a;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .reading-progress {
+        position: fixed;
+        z-index: 15;
+        inset: 0 0 auto;
+        block-size: 4px;
+        background: transparent;
+      }
+
+      .reading-progress span {
+        display: block;
+        inline-size: 0;
+        block-size: 100%;
+        background: linear-gradient(90deg, #686ee6, #17a87b);
+      }
+
+      .page-shell {
+        display: grid;
+        grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+        gap: clamp(1.25rem, 3vw, 3rem);
+        inline-size: min(1440px, 100%);
+        margin-inline: auto;
+        padding: clamp(1rem, 3vw, 2.75rem);
+      }
+
+      .side-rail {
+        position: sticky;
+        inset-block-start: 1.5rem;
+        align-self: start;
+        max-block-size: calc(100dvh - 3rem);
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-block-end: 0.5rem;
+        color: var(--ink);
+        font-size: 1.03rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        inline-size: 2.3rem;
+        aspect-ratio: 1;
+        place-items: center;
+        border-radius: 0.75rem;
+        color: #fff;
+        background: linear-gradient(135deg, #686ee6, #2c9d83);
+        font-weight: 900;
+      }
+
+      .rail-caption {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .toc-title {
+        margin: 1rem 0 0.4rem;
+        color: var(--muted);
+        font-size: 0.73rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .toc {
+        display: grid;
+        gap: 0.2rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .toc a {
+        display: block;
+        padding: 0.48rem 0.65rem;
+        border-radius: 0.6rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        text-decoration: none;
+      }
+
+      .toc a:hover,
+      .toc a[aria-current="location"] {
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+      }
+
+      .rail-note {
+        margin-block-start: 1.25rem;
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        color: var(--muted);
+        font-size: 0.79rem;
+      }
+
+      .page-links {
+        display: grid;
+        gap: 0.25rem;
+        margin-block: 0.75rem 1rem;
+      }
+
+      .page-links a {
+        display: block;
+        padding: 0.42rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .page-links a:hover,
+      .page-links a[aria-current="page"] {
+        border-color: var(--brand);
+        background: var(--brand-wash);
+      }
+
+      main {
+        min-inline-size: 0;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(1.5rem, 5vw, 4rem);
+        border: 1px solid var(--line);
+        border-radius: calc(var(--radius) + 4px);
+        background:
+          radial-gradient(circle at 86% 20%, rgb(93 102 219 / 18%), transparent 16rem),
+          var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 0.7rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--ink);
+        line-height: 1.25;
+        text-wrap: balance;
+      }
+
+      h1 {
+        max-inline-size: 17ch;
+        margin: 1.1rem 0 0.85rem;
+        font-size: clamp(2.15rem, 5vw, 4.3rem);
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin-block: 0 1rem;
+        font-size: clamp(1.55rem, 3vw, 2.2rem);
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin-block: 1.8rem 0.65rem;
+        font-size: 1.24rem;
+      }
+
+      h4 {
+        margin-block: 1.25rem 0.45rem;
+        font-size: 1.05rem;
+      }
+
+      p {
+        margin-block: 0.65rem 1rem;
+      }
+
+      .hero-lede {
+        max-inline-size: 66ch;
+        color: var(--muted);
+        font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-block-start: 1.4rem;
+      }
+
+      .button {
+        display: inline-flex;
+        min-block-size: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 1rem;
+        border: 1px solid var(--brand);
+        border-radius: 0.7rem;
+        color: #fff;
+        background: #4e54c8;
+        font: inherit;
+        font-weight: 750;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .button.secondary {
+        color: var(--brand-dark);
+        background: var(--surface);
+      }
+
+      .hero-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.2rem;
+        margin-block-start: 1.5rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .section {
+        margin-block-start: 1.5rem;
+        padding: clamp(1.2rem, 3vw, 2.35rem);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        scroll-margin-block-start: 1rem;
+      }
+
+      .chapter-kicker {
+        margin-block-end: 0.4rem;
+        color: var(--brand-dark);
+        font-size: 0.78rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .lede {
+        max-inline-size: 75ch;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .callout {
+        margin-block: 1rem;
+        padding: 1rem 1.1rem;
+        border-inline-start: 4px solid var(--brand);
+        border-radius: 0 0.7rem 0.7rem 0;
+        background: var(--brand-wash);
+      }
+
+      .callout p:last-child {
+        margin-block-end: 0;
+      }
+
+      .callout.good {
+        border-color: var(--green);
+        background: var(--green-wash);
+      }
+
+      .callout.caution {
+        border-color: #d58a17;
+        background: var(--orange-wash);
+      }
+
+      .callout.danger {
+        border-color: var(--red);
+        background: var(--red-wash);
+      }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 0.85rem;
+        margin-block: 1rem;
+      }
+
+      .card {
+        min-inline-size: 0;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        background: var(--surface);
+      }
+
+      .card h3,
+      .card h4 {
+        margin-block-start: 0;
+      }
+
+      .card p:last-child {
+        margin-block-end: 0;
+      }
+
+      .step-number {
+        display: inline-grid;
+        inline-size: 1.8rem;
+        aspect-ratio: 1;
+        place-items: center;
+        margin-inline-end: 0.35rem;
+        border-radius: 50%;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.86rem;
+        font-weight: 850;
+      }
+
+      figure {
+        margin: 1.25rem 0;
+      }
+
+      figcaption {
+        margin-block-start: 0.55rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .diagram {
+        overflow-x: auto;
+        padding: 1.15rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background:
+          linear-gradient(135deg, var(--surface-2), var(--surface));
+      }
+
+      .diagram svg {
+        display: block;
+        inline-size: 100%;
+        min-inline-size: 640px;
+        block-size: auto;
+      }
+
+      .diagram text {
+        fill: var(--ink);
+        font-family: inherit;
+        font-size: 15px;
+      }
+
+      .diagram .small {
+        fill: var(--muted);
+        font-size: 12px;
+      }
+
+      .diagram .node {
+        fill: var(--surface);
+        stroke: var(--brand);
+        stroke-width: 2;
+      }
+
+      .diagram .node-green {
+        fill: var(--green-wash);
+        stroke: var(--green);
+        stroke-width: 2;
+      }
+
+      .diagram .node-orange {
+        fill: var(--orange-wash);
+        stroke: #bd7810;
+        stroke-width: 2;
+      }
+
+      .diagram .arrow {
+        fill: none;
+        stroke: var(--brand);
+        stroke-width: 2.5;
+      }
+
+      .diagram .arrow-muted {
+        fill: none;
+        stroke: #7a849d;
+        stroke-width: 2;
+      }
+
+      .diagram marker path {
+        fill: var(--brand);
+      }
+
+      .diagram marker#muted-arrowhead path,
+      .diagram marker#event-muted-arrowhead path {
+        fill: #7a849d;
+      }
+
+      #learning-map-diagram .arrow {
+        marker-end: url("#learning-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow {
+        marker-end: url("#loop-arrowhead");
+      }
+
+      #prompt-diagram .arrow {
+        marker-end: url("#prompt-arrowhead");
+      }
+
+      #tool-diagram .arrow {
+        marker-end: url("#tool-arrowhead");
+      }
+
+      #event-diagram .arrow {
+        marker-end: url("#event-arrowhead");
+      }
+
+      #session-diagram .arrow {
+        marker-end: url("#session-arrowhead");
+      }
+
+      #web-diagram .arrow {
+        marker-end: url("#web-arrowhead");
+      }
+
+      #arch-diagram .arrow {
+        marker-end: url("#arch-arrowhead");
+      }
+
+      #lifecycle-diagram .arrow {
+        marker-end: url("#life-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow-muted {
+        marker-end: url("#muted-arrowhead");
+      }
+
+      #event-diagram .arrow-muted {
+        marker-end: url("#event-muted-arrowhead");
+      }
+
+      .diagram-description {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .code-card {
+        margin-block: 1rem;
+        overflow: hidden;
+        border: 1px solid #30384e;
+        border-radius: 0.9rem;
+        background: var(--code);
+        color: var(--code-ink);
+      }
+
+      .code-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.55rem 0.8rem;
+        border-block-end: 1px solid #343c52;
+        color: #bfc8e3;
+        font-size: 0.76rem;
+      }
+
+      .copy-button {
+        min-block-size: 2rem;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid #68718a;
+        border-radius: 0.45rem;
+        color: #f5f6ff;
+        background: #242a3b;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      pre {
+        max-inline-size: 100%;
+        margin: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1rem;
+        color: var(--code-ink);
+        font: 0.86rem/1.62 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        tab-size: 2;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 0.91em;
+      }
+
+      p code,
+      li code,
+      td code {
+        overflow-wrap: anywhere;
+        padding: 0.12em 0.34em;
+        border: 1px solid var(--line);
+        border-radius: 0.33rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+      }
+
+      .code-card pre code {
+        padding: 0;
+        border: 0;
+        color: inherit;
+        background: transparent;
+        font-size: inherit;
+      }
+
+      .line-note {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.28fr) minmax(0, 1fr);
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border-block-start: 1px solid #343c52;
+        color: #c4cbe0;
+        font-size: 0.82rem;
+      }
+
+      .line-note strong {
+        color: #aeb4ff;
+      }
+
+      .table-wrap {
+        max-inline-size: 100%;
+        margin-block: 1rem;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+      }
+
+      table {
+        inline-size: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+
+      caption {
+        padding: 0.75rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: start;
+      }
+
+      th,
+      td {
+        min-inline-size: 8rem;
+        padding: 0.7rem 0.8rem;
+        border-block-start: 1px solid var(--line);
+        text-align: start;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--ink);
+        background: var(--surface-2);
+      }
+
+      td {
+        color: var(--muted);
+      }
+
+      .exercise {
+        margin-block: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        background: var(--surface);
+      }
+
+      .exercise > summary {
+        padding: 0.85rem 1rem;
+        color: var(--brand-dark);
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .exercise-body {
+        padding: 0 1rem 1rem;
+      }
+
+      .exercise-body > :last-child {
+        margin-block-end: 0;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-block: 1rem;
+      }
+
+      .tag {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface-2);
+        font-size: 0.78rem;
+      }
+
+      .source-list {
+        display: grid;
+        gap: 0.45rem;
+        padding-inline-start: 1.25rem;
+      }
+
+      .source-list li {
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-block: 1.5rem 3rem;
+        padding: 1.2rem;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 900px) {
+        .page-shell {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 1rem;
+          padding: 0.75rem;
+        }
+
+        .side-rail {
+          position: relative;
+          inset-block-start: auto;
+          max-block-size: none;
+          padding: 0.8rem;
+        }
+
+        .rail-note,
+        .toc-title {
+          display: none;
+        }
+
+        .toc {
+          display: flex;
+          gap: 0.35rem;
+          overflow-x: auto;
+          padding-block: 0.45rem 0.1rem;
+          scrollbar-width: thin;
+        }
+
+        .toc li {
+          flex: 0 0 auto;
+        }
+
+        .toc a {
+          border: 1px solid var(--line);
+          background: var(--surface);
+          white-space: nowrap;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .hero {
+          padding: 1.3rem;
+        }
+
+        .section {
+          padding: 1rem;
+        }
+
+        .line-note {
+          grid-template-columns: 1fr;
+          gap: 0.1rem;
+        }
+
+        pre {
+          font-size: 0.78rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media (forced-colors: active) {
+        .brand-mark,
+        .button:not(.secondary) {
+          border: 1px solid ButtonText;
+        }
+
+        .diagram .node,
+        .diagram .node-green,
+        .diagram .node-orange {
+          fill: Canvas;
+          stroke: CanvasText;
+        }
+
+        .diagram .arrow,
+        .diagram .arrow-muted {
+          stroke: CanvasText;
+        }
+
+        .diagram marker path {
+          fill: CanvasText;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到教程正文</a>
+    <div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div>
+
+    <div class="page-shell">
+      <aside class="side-rail" aria-label="教程目录">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true">π</span>
+          <span>Pi Agent 入门实验室</span>
+        </a>
+        <p class="rail-caption">从看懂代码，到做出自己的 Agent</p>
+
+        <div class="page-links">
+          <a href="index.html">入门篇 · 九节课</a>
+          <a href="cli.html">进阶篇 · CLI 与扩展</a>
+          <a href="advanced.html">高级篇 · 模式与内部</a>
+          <a href="sdk.html">SDK 深入 · 扩展/Skill/MCP</a>
+          <a href="web.html" aria-current="page">实战篇 · 多用户 Web</a>
+          <a href="production.html">生产篇 · 上线交付</a>
+          <a href="career.html">求职篇 · 面试与作品集</a>
+        </div>
+
+        <p class="toc-title">学习路线</p>
+        <nav aria-label="章节导航">
+          <ol class="toc">
+            <li><a href="#web-goals">要造什么</a></li>
+            <li><a href="#web-sessions">01 · 会话注册表</a></li>
+            <li><a href="#web-server">02 · HTTP 与 SSE</a></li>
+            <li><a href="#web-run">03 · 跑起来</a></li>
+            <li><a href="#web-upgrade">04 · 升级路线</a></li>
+            <li><a href="advanced.html">高级篇 · 企业级架构 →</a></li>
+            <li><a href="sdk.html">SDK 深入 · 扩展/Skill/MCP →</a></li>
+            <li><a href="index.html">回入门篇 →</a></li>
+          </ol>
+        </nav>
+
+        <div class="rail-note">
+          本教程按 <strong>pi-coding-agent 1.6.1</strong> 编写。网页可离线阅读；调用模型需要你自己的 API Key。
+        </div>
+      </aside>
+
+        <main id="main-content" tabindex="-1">
+
+<header class="hero" id="top">
+          <span class="eyebrow">实战篇 · 完整可运行</span>
+          <h1>多用户 Web Agent 服务</h1>
+          <p class="hero-lede">
+            第 09 课是骨架，这一章是全量实现：零 Web 框架，按用户隔离的会话注册表、SSE 流式输出、
+            忙时 409、断连自动取消。三个可复现的故障实验放在最后一节。
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#web-goals">看目标</a>
+            <a class="button secondary" href="index.html">回入门篇</a>
+          </div>
+          <div class="hero-facts" aria-label="教程信息">
+            <span>依赖：Pi SDK + 主线项目工具</span>
+            <span>前置：入门篇 08、09 课</span>
+          </div>
+        </header>
+        <section class="section" id="web-goals" aria-labelledby="web-goals-title">
+          <p class="chapter-kicker">实战篇 · 多用户 Web Agent</p>
+          <h2 id="web-goals-title">这一章要造什么：一个能跑的 data-agent 服务</h2>
+          <p class="lede">
+            第 09 课给的是骨架，这一章给完整实现——零 Web 框架（Node 原生 http），只依赖 Pi SDK 和主线项目的
+            <code>query_sales</code> 工具。做完你将拥有：按用户隔离的会话、SSE 流式输出、工具状态推送、
+            断连自动取消、最小必要暴露。
+          </p>
+          <div class="card-grid">
+            <article class="card"><h4>功能清单</h4><p>POST /chat 触发任务；SSE 实时回传文字增量与工具状态；同一用户忙时返回 409；客户端断开即取消运行。</p></article>
+            <article class="card"><h4>故意不做的事</h4><p>真实认证（用请求头模拟 userId）、持久化、限流——它们在升级路线与高级篇 I 的清单里，练习里做。</p></article>
+            <article class="card"><h4>前置知识</h4><p>主线项目的 <code>src/tools/query-sales.ts</code>；第 09 课 9.1 的排队语义；高级篇 K 的“delta 渲染、end 落库”规则。</p></article>
+          </div>
+        </section>
+
+        <section class="section" id="web-sessions" aria-labelledby="web-sessions-title">
+          <p class="chapter-kicker">实战篇 01 · 会话注册表</p>
+          <h2 id="web-sessions-title">每用户一份会话：工厂 + 注册表</h2>
+          <p class="lede">
+            第 08 课的教训 + 第 09 课的工厂，合成一个可复用模块：一个 Map 管“userId → 会话”；
+            ModelRuntime 全局共享一份——它只管模型与凭据，不承载对话状态。
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>src/sessions.ts · 用户会话注册表（完整代码）</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="用户会话注册表源码" tabindex="0"><code>import {
+  createAgentSession,
+  DefaultResourceLoader,
+  getAgentDir,
+  ModelRuntime,
+  SessionManager,
+  type AgentSession,
+} from "@earendil-works/pi-coding-agent";
+import { querySalesTool } from "./tools/query-sales.ts";
+
+export type UserEntry = {
+  session: AgentSession;
+  running: boolean;
+};
+
+const sessions = new Map&lt;string, Promise&lt;UserEntry&gt;&gt;();
+
+export async function initModelRuntime(): Promise&lt;ModelRuntime&gt; {
+  const modelRuntime = await ModelRuntime.create();
+  if ((await modelRuntime.getAvailable()).length === 0) {
+    throw new Error("没有可用模型：请先配置 Provider 和 API Key");
+  }
+  return modelRuntime;
+}
+
+function createUserSession(userId: string, modelRuntime: ModelRuntime): Promise&lt;UserEntry&gt; {
+  const loader = new DefaultResourceLoader({
+    cwd: process.cwd(),
+    agentDir: getAgentDir(),
+    systemPromptOverride: () =&gt;
+      [
+        `你是用户 ${userId} 的销售数据分析助手。`,
+        "回答数字前必须先使用 query_sales 查询。",
+        "不能编造数据；查询没有结果就明确说明。",
+        "只回答当前提问用户的问题。",
+      ].join("\n"),
+    appendSystemPromptOverride: () =&gt; [],
+  });
+
+  return (async () =&gt; {
+    await loader.reload();
+    const model = (await modelRuntime.getAvailable())[0];
+    const { session } = await createAgentSession({
+      model,
+      modelRuntime,
+      resourceLoader: loader,
+      customTools: [querySalesTool],
+      tools: ["query_sales"],
+      sessionManager: SessionManager.inMemory(),
+    });
+
+    const entry: UserEntry = { session, running: false };
+    session.subscribe((event) =&gt; {
+      // 同步维护运行标志：下一节的并发路由依赖它
+      if (event.type === "agent_start") entry.running = true;
+      if (event.type === "agent_settled") entry.running = false;
+    });
+    return entry;
+  })();
+}
+
+/** 懒创建 + 去重：同一用户的并发首请求不会建两份会话 */
+export function getOrCreate(userId: string, modelRuntime: ModelRuntime): Promise&lt;UserEntry&gt; {
+  let entry = sessions.get(userId);
+  if (!entry) {
+    entry = createUserSession(userId, modelRuntime);
+    sessions.set(userId, entry);
+  }
+  return entry;
+}</code></pre>
+          </div>
+          <div class="callout">
+            <strong>三个设计决定：</strong>
+            注册表存 <code>Promise</code> 而不是结果——并发首请求天然去重；
+            ModelRuntime 全局一份——凭据轮换只在它身上做一次（高级篇 I.3）；
+            userId 进系统提示词——让隔离可观测，但真正的隔离靠“一人一会话”（第 08 课），提示词只是展示层。
+          </div>
+        </section>
+
+        <section class="section" id="web-server" aria-labelledby="web-server-title">
+          <p class="chapter-kicker">实战篇 02 · HTTP 与 SSE</p>
+          <h2 id="web-server-title">服务主体：一条白名单化的 SSE 管道</h2>
+          <p class="lede">
+            原生 http 就够，每一层都是前文机制的落地：认证占位 → 懒建会话 → 忙时 409 → 白名单事件流 → 断连取消。
+            八个编号步骤，对照第 09 课的骨架看。
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>src/server.ts · 完整服务（可直接运行）</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="Web 服务完整源码" tabindex="0"><code>import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
+import { getOrCreate, initModelRuntime } from "./sessions.ts";
+
+function sseWrite(res: ServerResponse, payload: unknown): void {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function readJson(req: IncomingMessage): Promise&lt;{ message?: string }&gt; {
+  return new Promise((resolve, reject) =&gt; {
+    let data = "";
+    req.on("data", (chunk: Buffer) =&gt; {
+      data += chunk;
+      if (data.length &gt; 100_000) reject(new Error("body too large"));
+    });
+    req.on("end", () =&gt; {
+      try { resolve(JSON.parse(data || "{}")); } catch { reject(new Error("bad json")); }
+    });
+    req.on("error", reject);
+  });
+}
+
+async function main(): Promise&lt;void&gt; {
+  const modelRuntime = await initModelRuntime();
+
+  const server = createServer(async (req, res) =&gt; {
+    // ① 认证占位：真实项目换成认证中间件，从会话/令牌取 userId
+    const userId = req.headers["x-user-id"];
+    if (typeof userId !== "string" || userId.length === 0) {
+      res.writeHead(401).end("missing x-user-id");
+      return;
+    }
+    if (req.method !== "POST" || req.url !== "/chat") {
+      res.writeHead(404).end();
+      return;
+    }
+
+    // ② 输入校验：长度上限是最便宜的防线
+    const body = await readJson(req);
+    const message = body.message?.trim() ?? "";
+    if (message.length === 0 || message.length &gt; 4000) {
+      res.writeHead(400).end("invalid message");
+      return;
+    }
+
+    // ③ 懒建会话（并发安全，见实战篇 01）
+    const user = await getOrCreate(userId, modelRuntime);
+
+    // ④ 并发规则：同一用户同时只跑一个 run。这里必须“同步占坑”：
+    // running 靠 agent_start 事件置位会有空窗（高级篇 J.1：看起来空闲其实忙），
+    // 两个请求可能在第一个 agent_start 发出前先后通过检查。所以先同步置位，事件只做兜底。
+    if (user.running) {
+      res.writeHead(409).end(JSON.stringify({ error: "任务进行中，请稍候" }));
+      return;
+    }
+    user.running = true;
+
+    // ⑤ SSE 响应头
+    res.writeHead(200, {
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache",
+      connection: "keep-alive",
+    });
+
+    // ⑥ 白名单转发：只暴露浏览器需要的字段（高级篇 K：delta 渲染，end 落库）
+    let closed = false;
+    const unsubscribe = user.session.subscribe((event: AgentSessionEvent) =&gt; {
+      if (closed) return;
+      switch (event.type) {
+        case "message_update":
+          if (event.assistantMessageEvent.type === "text_delta") {
+            sseWrite(res, { type: "delta", delta: event.assistantMessageEvent.delta });
+          }
+          break;
+        case "tool_execution_start":
+          sseWrite(res, { type: "tool_start", toolName: event.toolName });
+          break;
+        case "tool_execution_end":
+          sseWrite(res, { type: "tool_end", isError: event.isError });
+          break;
+        case "agent_settled":
+          sseWrite(res, { type: "settled", aborted: event.aborted });
+          break;
+      }
+    });
+
+    // ⑦ 客户端断开：停止订阅 + 取消运行（第 09 课踩坑实验的修法）
+    res.on("close", () =&gt; {
+      if (closed) return;
+      closed = true;
+      unsubscribe();
+      if (user.running) void user.session.abort();
+    });
+
+    // ⑧ 执行并收尾：final 用权威最终文本，不回传原始异常。
+    // closed 已断开时不再写流；若 prompt 在进入 run 之前就被拒绝（没有事件兜底），
+    // catch 里同步释放占坑，避免用户被永久 409。
+    try {
+      await user.session.prompt(message);
+      if (!closed) sseWrite(res, { type: "final", text: user.session.getLastAssistantText() ?? "" });
+    } catch {
+      user.running = false;
+      if (!closed) sseWrite(res, { type: "error", message: "服务暂时不可用，请稍后重试" });
+    } finally {
+      unsubscribe();
+      if (!closed) res.end();
+    }
+  });
+
+  server.listen(8787, () =&gt; console.log("listening on http://localhost:8787"));
+}
+
+main().catch((error) =&gt; {
+  console.error(error);
+  process.exit(1);
+});</code></pre>
+          </div>
+          <div class="callout danger">
+            <strong>安全占位必须换掉：</strong>
+            <code>x-user-id</code> 请求头只是教学占位——任何人都能伪装。真实部署里 userId 必须来自认证中间件
+            （会话令牌、JWT），并按高级篇 I.3 注入每用户凭据。这份代码的边界是“机制教学”，不是“可直接上线”。
+          </div>
+        </section>
+
+        <section class="section" id="web-run" aria-labelledby="web-run-title">
+          <p class="chapter-kicker">实战篇 03 · 跑起来</p>
+          <h2 id="web-run-title">验证：curl 先行，浏览器殿后</h2>
+          <div class="code-card">
+            <div class="code-head"><span>终端 · 启动与测试</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="启动与测试命令" tabindex="0"><code>node src/server.ts
+
+# 另开一个终端：-N 关闭 curl 缓冲，观察 SSE 流
+curl -N -H "x-user-id: alice" -H "content-type: application/json" -d "{\"message\":\"华东有哪些销售记录？\"}" http://localhost:8787/chat
+
+# 换个用户名再试：会新建一份会话，历史互不可见
+curl -N -H "x-user-id: bob" -H "content-type: application/json" -d "{\"message\":\"我叫小红。我叫什么名字？\"}" http://localhost:8787/chat</code></pre>
+          </div>
+          <p>期望的 SSE 流（节选，每行一个事件）：</p>
+          <div class="code-card">
+            <div class="code-head"><span>SSE 输出（节选）</span></div>
+            <pre role="region" aria-label="SSE 输出节选" tabindex="0"><code>data: {"type":"tool_start","toolName":"query_sales"}
+data: {"type":"tool_end","isError":false}
+data: {"type":"delta","delta":"华东"}
+data: {"type":"delta","delta":"地区共有两笔销售记录"}
+data: {"type":"final","text":"华东地区共有两笔销售记录……"}
+data: {"type":"settled","aborted":false}</code></pre>
+          </div>
+          <p>浏览器端用 fetch 读流——EventSource 只支持 GET，这里是 POST + ReadableStream：</p>
+          <div class="code-card">
+            <div class="code-head"><span>浏览器测试片段</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="浏览器读取 SSE 流片段" tabindex="0"><code>const res = await fetch("/chat", {
+  method: "POST",
+  headers: { "x-user-id": "alice", "content-type": "application/json" },
+  body: JSON.stringify({ message: "华东有哪些销售记录？" }),
+});
+const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  for (const chunk of value.split("\n\n")) {
+    if (chunk.startsWith("data: ")) console.log(JSON.parse(chunk.slice(6)));
+  }
+}</code></pre>
+          </div>
+          <details class="exercise">
+            <summary>练习 · 三个必须亲手制造的故障</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>alice 的任务运行中，再发一个 alice 请求 → 观察 409。</li>
+                <li>任务运行中直接 Ctrl+C 关掉 curl → 在服务端确认 run 被 abort（settled 事件 aborted = true）。</li>
+                <li>用 alice 说“我叫小明”，再用 bob 问“我叫什么名字” → 隔离生效。</li>
+              </ol>
+              <p><strong>检查点：</strong>三个故障分别对应教程哪一课的哪个机制？</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="web-upgrade" aria-labelledby="web-upgrade-title">
+          <p class="chapter-kicker">实战篇 04 · 升级路线</p>
+          <h2 id="web-upgrade-title">从“能跑”到“能上线”：按顺序补这五块</h2>
+          <p>这五块现在已经不再是“留给你做”——每一块的完整实现都写成了第 6 册 <a href="production.html">生产篇 · 上线交付</a>。做完那一册，你才第一次拥有可以写进简历的制品。</p>
+          <div class="table-wrap">
+            <table>
+              <caption>升级路线：每一块都有教程落点</caption>
+              <thead><tr><th scope="col">顺序</th><th scope="col">升级</th><th scope="col">怎么做 / 落点</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">1</th><td>忙时排队而不是 409</td><td>把 409 分支换成 <code>session.steer()</code>（插话）或 <code>followUp()</code>（追加）；新连接同样订阅会话即可看到后续事件，等 <code>agent_settled</code> 再收尾（第 09 课 9.1）</td></tr>
+                <tr><th scope="row">2</th><td>真实认证与凭据</td><td>认证中间件换掉 x-user-id；按用户 <code>setRuntimeApiKey</code>（高级篇 I.3）</td></tr>
+                <tr><th scope="row">3</th><td>会话持久化</td><td>inMemory → 文件（sessionDir 按用户分目录）或自建存储，进程重启不丢历史（高级篇 I.2）</td></tr>
+                <tr><th scope="row">4</th><td>观测与审计</td><td>挂高级篇 H 的 trace 记录器，按 userId 落 JSONL；usage 进成本账</td></tr>
+                <tr><th scope="row">5</th><td>边界与隔离</td><td>容器部署（进阶篇 F）、工具服务端授权、限流与队列上限（高级篇 I.6 清单）</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout good">
+            <strong>验收标准：</strong>
+            两个浏览器窗口、两个用户、同时提问、互不可见、断开即停、每条请求在 trace 里查得到——
+            六个“是”，就是这门课的毕业线。
+          </div>
+        </section>
+
+        <footer class="footer">
+          <p>学 Pi Agent 的目标不是背 API，而是知道每一层负责什么、出问题该去哪一层找。</p>
+          <p><a href="#top">回到页面顶部 ↑</a></p>
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      const progressBar = document.querySelector("#progress-bar");
+      const tocLinks = [...document.querySelectorAll(".toc a")];
+      const sections = tocLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      function updateReadingProgress() {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+        progressBar.style.inlineSize = `${Math.min(100, Math.max(0, progress))}%`;
+      }
+
+      window.addEventListener("scroll", updateReadingProgress, { passive: true });
+      window.addEventListener("resize", updateReadingProgress);
+      updateReadingProgress();
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            for (const link of tocLinks) {
+              if (link.getAttribute("href") === `#${visible.target.id}`) {
+                link.setAttribute("aria-current", "location");
+              } else {
+                link.removeAttribute("aria-current");
+              }
+            }
+          },
+          { rootMargin: "-12% 0px -72% 0px", threshold: [0, 0.25, 0.5] },
+        );
+        for (const section of sections) observer.observe(section);
+      }
+
+      for (const button of document.querySelectorAll(".copy-button")) {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-card")?.querySelector("pre code")?.textContent;
+          if (!code) return;
+          try {
+            await navigator.clipboard.writeText(code);
+            button.textContent = "已复制";
+            window.setTimeout(() => {
+              button.textContent = "复制";
+            }, 1400);
+          } catch {
+            button.textContent = "请手动选择代码";
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -2,10 +2,10 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="从 TypeScript 入门到亲手搭建 Pi Agent：图解 Agent Loop、模型、工具、扩展、会话，沿主线项目走到多用户 Web 服务。">
     <meta
-      name="description"
-      content="从 TypeScript 入门到亲手搭建 Pi Agent：图解 Agent Loop、模型、工具、扩展、会话与实战。"
+      name="viewport"
+      content="width=device-width, initial-scale=1"
     >
     <title>Pi Agent 入门实验室：从看懂代码到做出自己的 Agent</title>
     <style>
@@ -219,6 +219,30 @@
         border-radius: 0.75rem;
         color: var(--muted);
         font-size: 0.79rem;
+      }
+
+      .page-links {
+        display: grid;
+        gap: 0.25rem;
+        margin-block: 0.75rem 1rem;
+      }
+
+      .page-links a {
+        display: block;
+        padding: 0.42rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .page-links a:hover,
+      .page-links a[aria-current="page"] {
+        border-color: var(--brand);
+        background: var(--brand-wash);
       }
 
       main {
@@ -522,6 +546,14 @@
         marker-end: url("#web-arrowhead");
       }
 
+      #arch-diagram .arrow {
+        marker-end: url("#arch-arrowhead");
+      }
+
+      #lifecycle-diagram .arrow {
+        marker-end: url("#life-arrowhead");
+      }
+
       #agent-loop-diagram .arrow-muted {
         marker-end: url("#muted-arrowhead");
       }
@@ -819,6 +851,16 @@
         </a>
         <p class="rail-caption">从看懂代码，到做出自己的 Agent</p>
 
+        <div class="page-links">
+          <a href="index.html" aria-current="page">入门篇 · 九节课</a>
+          <a href="cli.html">进阶篇 · CLI 与扩展</a>
+          <a href="advanced.html">高级篇 · 模式与内部</a>
+          <a href="sdk.html">SDK 深入 · 扩展/Skill/MCP</a>
+          <a href="web.html">实战篇 · 多用户 Web</a>
+          <a href="production.html">生产篇 · 上线交付</a>
+          <a href="career.html">求职篇 · 面试与作品集</a>
+        </div>
+
         <p class="toc-title">学习路线</p>
         <nav aria-label="章节导航">
           <ol class="toc">
@@ -831,15 +873,15 @@
             <li><a href="#chapter-6">06 · 自定义工具</a></li>
             <li><a href="#chapter-7">07 · 扩展与事件</a></li>
             <li><a href="#chapter-8">08 · 会话与记忆</a></li>
-            <li><a href="#chapter-9">09 · 做成 Web 服务</a></li>
+            <li><a href="#chapter-9">09 · Web 服务骨架</a></li>
             <li><a href="#final-project">毕业实战 · DataAgent</a></li>
-            <li><a href="#adv-cli">进阶 A · 终端日常使用</a></li>
-            <li><a href="#adv-ext">进阶 B · 扩展机制全景</a></li>
-            <li><a href="#adv-session">进阶 C · 会话与上下文</a></li>
-            <li><a href="#adv-integrate">进阶 D · 集成与 MCP</a></li>
-            <li><a href="#adv-config">进阶 E · 配置与模型</a></li>
-            <li><a href="#adv-security">进阶 F · 安全与上线</a></li>
             <li><a href="#debugging">常见问题</a></li>
+            <li><a href="cli.html">进阶篇 · CLI 与扩展 →</a></li>
+            <li><a href="advanced.html">高级篇 · 模式与内部 →</a></li>
+            <li><a href="sdk.html">SDK 深入 · 扩展/Skill/MCP →</a></li>
+            <li><a href="web.html">实战篇 · 多用户 Web →</a></li>
+            <li><a href="production.html">生产篇 · 上线交付 →</a></li>
+            <li><a href="career.html">求职篇 · 面试与作品集 →</a></li>
           </ol>
         </nav>
 
@@ -849,23 +891,29 @@
       </aside>
 
         <main id="main-content" tabindex="-1">
-        <header class="hero" id="top">
-          <span class="eyebrow">图解机制 · 逐行读代码 · 练习即反馈</span>
+
+<header class="hero" id="top">
+          <span class="eyebrow">图解机制 · 逐行读代码 · 踩坑实验</span>
           <h1>从 TS 小白到会做 Pi Agent</h1>
           <p class="hero-lede">
             我们不从一大堆 API 名词开始。先跑起一个最小 Agent，再用图把它内部发生的事画出来；
-            接着逐步给它装上模型、提示词和工具，最后亲手拼成一个属于自己的小助手。
+            接着逐步给它装上模型、提示词和工具，最后沿一条主线拼成多用户服务。进阶、实战、生产与求职拆在另外六册。
           </p>
           <div class="hero-actions">
             <a class="button" href="#start">从第一课开始</a>
-            <a class="button secondary" href="#final-project">先看毕业实战</a>
+            <a class="button secondary" href="web.html">直奔多用户实战</a>
           </div>
           <div class="hero-facts" aria-label="教程信息">
             <span>适合：会一点编程，但 TS 不熟</span>
             <span>目标版本：Pi Agent 1.6.1</span>
-            <span>学习方式：每章一个练习</span>
+            <span>学习方式：每章练习 + 踩坑实验</span>
           </div>
         </header>
+
+
+
+
+
 
         <section class="section" id="start" aria-labelledby="start-title">
           <p class="chapter-kicker">开始前 · 先建立正确的预期</p>
@@ -945,7 +993,7 @@ mkdir pi-agent-learning
 cd pi-agent-learning
 npm init -y
 npm pkg set type=module
-npm install @earendil-works/pi-coding-agent@1.6.1 typebox@1.3.27
+npm install --ignore-scripts @earendil-works/pi-coding-agent@1.6.1 typebox@1.3.27
 npm install -D typescript@^5.9 @types/node@^24</code></pre>
           </div>
           <p>新建 <code>src/hello.ts</code> 保存后，用 <code>node src/hello.ts</code> 运行；用 <code>npx tsc --noEmit</code> 做静态类型检查。Node 22.19+ 能直接擦除本教程用到的 TypeScript 类型标注，不代表它会替你做 TypeScript 类型检查。</p>
@@ -984,6 +1032,11 @@ npm install -D typescript@^5.9 @types/node@^24</code></pre>
           <p>
             为什么单独装 <code>typebox</code>？因为我们会在自己的工具里直接写
             <code>import { Type } from "typebox"</code>。依赖应该明确写进项目，而不是侥幸借用 SDK 的间接依赖。
+            1.6.1 自己也依赖 <code>typebox@1.3.27</code>，钉同一个版本可以避免装出两份。
+          </p>
+          <p>
+            安装命令里的 <code>--ignore-scripts</code> 会跳过依赖包安装时的生命周期脚本，这是官方推荐的安装方式，
+            用来缩小供应链攻击面；进阶篇 A 的全局安装用的也是它。
           </p>
 
           <h3>1.2 TS 小抄：把常见符号翻译成人话</h3>
@@ -1025,11 +1078,18 @@ npm install -D typescript@^5.9 @types/node@^24</code></pre>
             最小闭环需要四样东西：可用模型、会话、一次提问，以及一个把生成文字显示出来的事件监听器。
           </p>
 
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 1 步：</strong>
+            从这一课起，代码都往同一个文件里长：<code>src/data-agent.ts</code>。本课的 <code>hello.ts</code>
+            就是它的雏形——一个“裸 prompt”的 Agent。先把它复制过去，后面每课给它加一层能力。
+          </div>
+
           <div class="code-card">
             <div class="code-head"><span>src/hello.ts · 可直接作为第一个实验</span><button class="copy-button" type="button">复制</button></div>
             <pre role="region" aria-label="最小 Pi Agent 示例 TypeScript 源码" tabindex="0"><code>import {
   createAgentSession,
   ModelRuntime,
+  SessionManager,
 } from "@earendil-works/pi-coding-agent";
 
 // 1. 读本机模型与认证配置
@@ -1041,10 +1101,11 @@ if (!model) {
   throw new Error("没有可用模型：请先配置 Provider 和 API Key");
 }
 
-// 2. 创建一段对话
+// 2. 创建一段对话；inMemory 表示历史只存在内存里，不写会话文件
 const { session } = await createAgentSession({
   model,
   modelRuntime,
+  sessionManager: SessionManager.inMemory(),
 });
 
 // 3. 订阅文字增量
@@ -1064,7 +1125,7 @@ try {
   unsubscribe();
   session.dispose();
 }</code></pre>
-            <div class="line-note"><strong>读这段代码</strong><span><code>modelRuntime</code> 管模型；<code>session</code> 管这一段对话；<code>subscribe</code> 负责“看过程”；<code>prompt</code> 负责“开始做”。</span></div>
+            <div class="line-note"><strong>读这段代码</strong><span><code>modelRuntime</code> 管模型；<code>session</code> 管这一段对话；<code>subscribe</code> 负责“看过程”；<code>prompt</code> 负责“开始做”。SDK 会话默认是持久化的，每次 <code>createAgentSession()</code> 都会生成一个会话文件；示例传 <code>SessionManager.inMemory()</code>，反复运行不会在磁盘上堆积文件。</span></div>
           </div>
 
           <h3>逐段翻译：程序是怎么走下去的</h3>
@@ -1076,7 +1137,7 @@ try {
                 <tr><th scope="row"><code>await ModelRuntime.create()</code></th><td>读配置，准备和模型沟通的运行时。</td></tr>
                 <tr><th scope="row"><code>await modelRuntime.getAvailable()</code></th><td>询问当前有哪些模型可以用；<code>await</code> 表示等结果回来再继续。</td></tr>
                 <tr><th scope="row"><code>if (!model)</code></th><td>如果列表里没有选出模型，就先报错停止；不要带着空模型继续。</td></tr>
-                <tr><th scope="row"><code>createAgentSession(...)</code></th><td>用选中的模型创建一段新的 Agent 对话。</td></tr>
+                <tr><th scope="row"><code>createAgentSession(...)</code></th><td>用选中的模型创建一段新的 Agent 对话；不传 <code>sessionManager</code> 时默认持久化到会话文件。</td></tr>
                 <tr><th scope="row"><code>session.subscribe(...)</code></th><td>登记一个监听函数；Pi 发来事件时运行它。</td></tr>
                 <tr><th scope="row"><code>event.type === "message_update"</code></th><td>只处理“消息正在变化”这一类事件。检查后，TypeScript 才允许安全读取相应字段，这叫类型收窄。</td></tr>
                 <tr><th scope="row"><code>await session.prompt(...)</code></th><td>把问题交给 Agent，并等待这次处理完成。</td></tr>
@@ -1096,6 +1157,7 @@ try {
           <div class="callout good">
             <strong>为什么有 <code>finally</code>？</strong>
             就算模型请求失败或你中途取消，清理监听器、释放 session 仍会执行。<code>dispose()</code> 不是“保存按钮”，会话历史的保存由 SessionManager 负责。
+            如果你只想要“最终回答”而不关心流式过程，官方最小示例用 <code>session.getLastAssistantText()</code> 一行就能取到，连订阅都可以省掉。
           </div>
           <div class="callout">
             <strong>Node 与 TypeScript 是两件事：</strong>
@@ -1108,9 +1170,19 @@ try {
               <ol>
                 <li>把问题改成你自己感兴趣的内容。</li>
                 <li>先临时注释掉 <code>message_update</code> 判断，看看事件里除了文字之外还出现了什么。</li>
-                <li>再取消订阅并清理 session 的代码，想想连续运行很多次可能留下什么。</li>
+                <li>再临时注释掉“取消订阅并清理 session”的代码，想想连续运行很多次可能留下什么。</li>
               </ol>
               <p><strong>检查点：</strong>你能指出哪一行发问、哪一行输出增量、哪两行负责清理吗？</p>
+            </div>
+          </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 不 await 的第二个 prompt 会怎样？</summary>
+            <div class="exercise-body">
+              <p>把提问部分改成连续两次调用，但第一个不加 <code>await</code>：</p>
+              <p><code>session.prompt("第一个问题");</code><br><code>await session.prompt("第二个问题");</code></p>
+              <p>第二个调用会直接抛错：<code>Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message.</code></p>
+              <p>这不是 bug，是设计：同一个会话同时只有一个 run，流式输出期间的第二个 prompt 必须说明是“插话”还是“排队”，Pi 拒绝替你猜。真正的修法在第 09 课 9.1——先记住这个报错，它是 Web 服务里最常见的第一个异常。</p>
             </div>
           </details>
         </section>
@@ -1121,6 +1193,13 @@ try {
           <p class="lede">
             如果模型只回答文字，一轮就结束；如果它决定使用工具，Pi 会运行工具，把结果放回对话，再问模型下一步。
           </p>
+
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 2 步：</strong>
+            给 <code>data-agent.ts</code> 装上“行车记录仪”：把订阅回调改成
+            <code>console.log(new Date().toISOString().slice(11, 23), event.type)</code>，
+            跑一次带工具的任务，把事件时间线存下来——这是高级篇 H 观测能力的种子。
+          </div>
 
           <figure class="diagram">
             <svg id="agent-loop-diagram" viewBox="0 0 900 410" role="img" aria-labelledby="loop-title loop-desc">
@@ -1196,6 +1275,7 @@ try {
           <div class="callout">
             <strong>源码阅读技巧：</strong>
             先在类型定义里找事件结构，再在发出事件的地方找调用点，最后回到 SDK 入口看是谁把它们连起来。不要从一个几千行文件第一行开始硬读。
+            想沿 <code>prompt()</code> 一路走到第一个字符上屏，见<a href="advanced.html#adv-internals-loop">高级篇 J 的完整路径</a>——那里把本课的鸟瞰图逐行走完。
           </div>
 
           <h3>run 结束，不一定代表真的闲下来了</h3>
@@ -1211,6 +1291,16 @@ try {
               <p><strong>检查点：</strong>找找 <code>agent_start</code>、<code>turn_start</code>、<code>message_update</code>、工具事件和 <code>agent_settled</code> 的相对顺序。不同请求和模型可能发出不同数量的流事件。</p>
             </div>
           </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 在订阅回调里忙等 500 毫秒会怎样？</summary>
+            <div class="exercise-body">
+              <p>在 <code>subscribe</code> 回调里加一段同步忙等（比如空转循环半秒），再问一个长回答的问题。</p>
+              <p>你会看到：文字流变成一顿一顿的，整体完成时间明显变长。</p>
+              <p>为什么：<code>_emit</code> 是同步循环（本课的源码摘录），每个事件都要等你的回调跑完才轮到下一个订阅者——流式事件一多，慢回调就成了节流阀。</p>
+              <p>修法：回调只做轻活；重活先入队、异步处理，或移到扩展通道（<a href="cli.html#adv-ext">进阶篇 B.9 的规则 2</a>）。</p>
+            </div>
+          </details>
         </section>
 
         <section class="section" id="chapter-4" aria-labelledby="chapter-4-title">
@@ -1219,6 +1309,12 @@ try {
           <p class="lede">
             模型定义回答“调用谁”，认证回答“凭什么调用”。它们有关联，但不是同一件事。
           </p>
+
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 3 步：</strong>
+            把 <code>choices[0]</code> 换成精确选择：<code>modelRuntime.getModel("anthropic", "claude-opus-4-5")</code>，
+            选不到就带着清晰的报错退出。生产代码不靠“第一个可用”碰运气。
+          </div>
 
           <h3>4.1 一个 OpenAI 兼容 Provider 配置骨架</h3>
           <div class="code-card">
@@ -1263,6 +1359,16 @@ try {
               </ol>
             </div>
           </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 明明设了 Key，为什么还是“没有可用模型”？</summary>
+            <div class="exercise-body">
+              <p>在终端 A 里设置环境变量（PowerShell：<code>$env:MY_COMPANY_API_KEY = "sk-..."</code>），然后在终端 B 里启动 <code>node src/data-agent.ts</code>。</p>
+              <p>你会看到：<code>getAvailable()</code> 返回空，报“没有可用模型”。</p>
+              <p>为什么：环境变量属于进程环境，只在设置它的那个终端及其子进程里可见。官方排查文档专门列了这条：“环境变量必须存在于启动 Pi 的那个进程里”。</p>
+              <p>修法：在同一个终端设置后再启动；或写进 <code>models.json</code> 的 <code>$VAR</code> 引用，并保证启动脚本注入了它。</p>
+            </div>
+          </details>
         </section>
 
         <section class="section" id="chapter-5" aria-labelledby="chapter-5-title">
@@ -1271,6 +1377,12 @@ try {
           <p class="lede">
             提示词告诉模型“做事时遵循什么规则”。固定的人设可以在会话资源加载时设置；动态、每次请求不同的信息需要更仔细地安排注入位置。
           </p>
+
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 4 步：</strong>
+            把本课的四条角色规则搬进 <code>data-agent.ts</code> 的 <code>systemPromptOverride</code>，
+            尤其保留“查询没有结果就明确说不知道”——它是<a href="advanced.html#adv-observability">高级篇 H 评测用例</a>的判分依据。
+          </div>
 
           <div class="code-card">
             <div class="code-head"><span>用 ResourceLoader 设置静态人设</span><button class="copy-button" type="button">复制</button></div>
@@ -1337,6 +1449,16 @@ await resourceLoader.reload();</code></pre>
               <p><strong>检查点：</strong>让 Agent 明确说出“我不知道”的条件；不要只写“请准确回答”。</p>
             </div>
           </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 把当前时间写进系统提示词，会发生什么？</summary>
+            <div class="exercise-body">
+              <p>在 <code>systemPromptOverride</code> 里拼上 <code>当前时间：${new Date().toISOString()}</code>，连发两次相同的问题。</p>
+              <p>观察 <code>message_end</code> 事件里的 <code>usage</code>：第二次请求的 <code>cacheRead</code> 接近 0，输入 token 照单全收。</p>
+              <p>为什么：系统提示词是请求前缀的第一行，时间一秒一变，提示词缓存的前缀永远对不上（高级篇 G.2 的“前缀稳定才省钱”）。</p>
+              <p>修法：每请求变化的信息放进用户消息或 <code>before_agent_start</code> 注入，别碰前缀。</p>
+            </div>
+          </details>
         </section>
 
         <section class="section" id="chapter-6" aria-labelledby="chapter-6-title">
@@ -1345,6 +1467,13 @@ await resourceLoader.reload();</code></pre>
           <p class="lede">
             模型不能凭空访问你的数据库。你把可用动作定义成工具，模型选择工具并填写参数，Pi 校验参数后调用你的 TypeScript 函数。
           </p>
+
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 5 步：</strong>
+            把 <code>src/tools/query-sales.ts</code> 接进 <code>data-agent.ts</code>：
+            <code>customTools: [querySalesTool]</code> 加 <code>tools: ["query_sales"]</code>。
+            到这里，Agent 第一次“能做事”了。
+          </div>
 
           <figure class="diagram">
             <svg id="tool-diagram" viewBox="0 0 900 230" role="img" aria-labelledby="tool-title tool-desc">
@@ -1462,6 +1591,16 @@ export const querySalesTool = defineTool({
               <p><strong>检查点：</strong>即使模型传入很大的 <code>maxRows</code>，你的 execute 也必须有服务端上限。</p>
             </div>
           </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 一个不检查 signal 的慢工具，abort 得动吗？</summary>
+            <div class="exercise-body">
+              <p>在 <code>execute</code> 里加一个 10 秒的忙等循环（不看 <code>signal</code>），并在 <code>prompt</code> 之前安排 500 毫秒后取消：<code>setTimeout(() =&gt; void session.abort(), 500)</code>。</p>
+              <p>你会看到：取消“卡住”了——工具照样跑满 10 秒，<code>tool_execution_end</code> 迟迟不来。</p>
+              <p>为什么：<code>abort()</code> 只负责发出信号；源码里的 <code>prepareToolCall</code> 只能在“开始执行前”替你拦，执行中的取消要靠工具自己配合。</p>
+              <p>修法：长循环每轮检查 <code>signal?.aborted</code>；网络请求传 <code>{ signal }</code>；取消后返回“已取消”的结果。</p>
+            </div>
+          </details>
         </section>
 
         <section class="section" id="chapter-7" aria-labelledby="chapter-7-title">
@@ -1471,6 +1610,12 @@ export const querySalesTool = defineTool({
             这一章是整个 SDK 最关键的机制之一。记住一个小口诀：<code>subscribe</code> 多用于观察；
             <code>pi.on</code> 用于扩展钩子，可以按事件契约影响流程。
           </p>
+
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 6 步：</strong>
+            把 <code>limitGuard</code> 安全门接进 <code>data-agent.ts</code> 的 <code>extensionFactories</code>，
+            试着要求“返回 999 条”，确认拦截生效——这是主线的第一道护栏。
+          </div>
 
           <div class="table-wrap">
             <table>
@@ -1588,7 +1733,7 @@ const limitGuard: ExtensionFactory = (pi) =&gt; {
           <div class="card-grid">
             <article class="card"><h4><code>tool_call</code></h4><p>工具执行前检查；可以返回 <code>block: true</code> 拦截。要改参数时，原地修改 <code>event.input</code>，而不是返回新参数。</p></article>
             <article class="card"><h4><code>context</code></h4><p>每次模型请求前处理对话消息；这个事件里的 messages 不包含系统提示词。</p></article>
-            <article class="card"><h4><code>context_with_system</code></h4><p>需要查看或转换完整上下文（含 system message）时使用；返回消息列表意味着你拥有它的内容。</p></article>
+            <article class="card"><h4><code>context_with_system</code></h4><p>需要查看或转换完整上下文（含 system message）时使用；返回的消息列表会原样发给模型，必须保留下标 0 的 system message——它承载系统提示词和工具声明，删掉会直接报错。</p></article>
             <article class="card"><h4><code>tool_result</code></h4><p>执行之后观察或改写返回给模型的结果；不要与“工具开始执行”混为一谈。</p></article>
           </div>
           <div class="callout danger">
@@ -1609,6 +1754,16 @@ const limitGuard: ExtensionFactory = (pi) =&gt; {
               <p>提示：一种是旁观通知，一种是 SDK 定义的扩展钩子；后者的特定事件会读取约定返回值。</p>
             </div>
           </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 为什么我在 subscribe 里 return 了 block，工具还是跑了？</summary>
+            <div class="exercise-body">
+              <p>把安全门代码从扩展 <code>pi.on("tool_call")</code> 挪进 <code>session.subscribe</code> 回调，返回 <code>{ block: true, reason: "超限" }</code>，再请求 999 条。</p>
+              <p>你会看到：拦截完全不生效，工具照常执行，返回值像被扔掉了一样。</p>
+              <p>为什么：<code>subscribe</code> 是观察通道，<code>_emit</code> 根本不收集返回值（第 03 课的源码摘录）；门控契约只存在于扩展钩子里，由 agent 的 <code>beforeToolCall</code> 读取。</p>
+              <p>修法：拦截逻辑放回扩展。顺带观察时间线——被拦截的调用照样有 <code>tool_execution_start</code> 和带错误的 <code>tool_execution_end</code>（<a href="advanced.html#adv-internals-loop">高级篇 J.5 的四道关卡</a>）。</p>
+            </div>
+          </details>
         </section>
 
         <section class="section" id="chapter-8" aria-labelledby="chapter-8-title">
@@ -1617,6 +1772,12 @@ const limitGuard: ExtensionFactory = (pi) =&gt; {
           <p class="lede">
             一个 session 是一段对话。多轮聊天需要复用同一个用户的会话；不同用户要有不同会话和授权上下文。
           </p>
+
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 7 步：</strong>
+            把 <code>data-agent.ts</code> 改造成工厂：<code>function createUserSession(userId: string)</code>，
+            每个用户一份 inMemory 会话，并把 userId 写进该用户的系统提示词。第 09 课的 Web 服务直接拿它当路由表。
+          </div>
           <figure class="diagram">
             <svg id="session-diagram" viewBox="0 0 850 250" role="img" aria-labelledby="session-title session-desc">
               <title id="session-title">用户与 Agent 会话隔离图</title>
@@ -1657,6 +1818,16 @@ const limitGuard: ExtensionFactory = (pi) =&gt; {
               <p><strong>答案方向：</strong>历史可能串线、并发 prompt 冲突、用户上下文或授权信息可能混用。至少要按已认证用户隔离 session 和用户上下文。</p>
             </div>
           </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 亲眼看见会话串台</summary>
+            <div class="exercise-body">
+              <p>用一个全局 <code>session</code> 模拟两个用户：先以用户 A 发“我叫小明，我最喜欢键盘”；等回答完，再以用户 B 发“我叫小红。请问我叫什么名字？我最喜欢什么？”</p>
+              <p>你会看到：Agent 很可能答出“小明”和“键盘”——用户 B 读到了用户 A 的对话。</p>
+              <p>为什么：session 是唯一的对话状态容器，历史、身份、上下文全在里面；共享 session 就等于共享记忆。</p>
+              <p>再进一步：不等回答完就连发两条 prompt，还会撞见第 02 课踩坑实验里那个 "already processing" 报错——隔离和并发是同一个问题的两面。</p>
+            </div>
+          </details>
         </section>
 
         <section class="section" id="chapter-9" aria-labelledby="chapter-9-title">
@@ -1665,6 +1836,12 @@ const limitGuard: ExtensionFactory = (pi) =&gt; {
           <p class="lede">
             Pi SDK 负责 Agent 和事件；你的 Web 服务负责 HTTP、认证、会话路由和把事件编码成 SSE。
           </p>
+
+          <div class="callout">
+            <strong>主线项目 · DataAgent 第 8 步（完工）：</strong>
+            把 9.1 的排队逻辑和本课的 SSE 骨架套在 <code>createUserSession</code> 上，
+            DataAgent 就是一个能同时服务多个用户的 Web 服务了。毕业实战一节做最终验收。
+          </div>
           <figure class="diagram">
             <svg id="web-diagram" viewBox="0 0 900 260" role="img" aria-labelledby="web-title web-desc">
               <title id="web-title">Web Agent SSE 数据流图</title>
@@ -1700,6 +1877,39 @@ const limitGuard: ExtensionFactory = (pi) =&gt; {
   ├─ await session.prompt(message)
   └─ finally：取消订阅、发结束事件、关闭响应</code></pre>
           </div>
+
+          <h3>9.1 会话正在忙时：steer、followUp 与 abort</h3>
+          <p>
+            上面的骨架有一个隐藏前提：调 <code>session.prompt()</code> 时会话是空闲的。SDK 的规则是，
+            会话正在流式输出时再次调用 <code>prompt()</code>，必须说明这条消息是“插话”还是“排队追加”，
+            否则 Pi 会直接拒绝这次调用，而不是替你猜。Web 服务里用户连发两条消息是常态，所以要显式处理：
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>src/chat-queue.ts · 按会话状态路由用户消息</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="按会话状态路由用户消息的示例" tabindex="0"><code>// 用生命周期事件维护“是否正在运行”的标志
+let running = false;
+session.subscribe((event) =&gt; {
+  if (event.type === "agent_start") running = true;
+  if (event.type === "agent_settled") running = false; // 真正空闲，见进阶篇 B
+});
+
+async function enqueue(message: string) {
+  if (!running) {
+    await session.prompt(message);                  // 空闲：开始一次新的运行
+    return;
+  }
+  const disposition = await session.steer(message); // 插话：当前回复结束后立即生效
+  // 想排到整个任务之后再处理，改用 await session.followUp(message)
+  // 返回 "queued" 表示已排队；"handled" 表示被扩展消费，不要再等它产生输出
+  if (disposition === "handled") return;
+}</code></pre>
+          </div>
+          <div class="callout">
+            <strong>三个配套方法：</strong>
+            <code>session.abort()</code> 停止当前操作并等会话空闲——SSE 断连时调用它，而不是直接扔掉 session；
+            <code>session.waitForIdle()</code> 只等不取消；插话和排队的送达节奏还可以用设置里的
+            <code>steeringMode</code> / <code>followUpMode</code> 调整。
+          </div>
           <div class="callout danger">
             <strong>上线前的安全检查：</strong>
             认证、速率限制、并发控制、消息长度、用户数据隔离、工具权限、断连取消和错误日志都要由你的应用负责。
@@ -1712,13 +1922,23 @@ const limitGuard: ExtensionFactory = (pi) =&gt; {
               <p><strong>想一想：</strong>某个工具参数里可能有用户输入或内部标识，哪些字段可以公开？</p>
             </div>
           </details>
+
+          <details class="exercise">
+            <summary>踩坑实验 · 客户端断了，Agent 还在烧钱</summary>
+            <div class="exercise-body">
+              <p>在 SSE 骨架里“忘掉”断连处理：浏览器发起请求后直接关掉标签页，而服务端的 <code>session.prompt()</code> 继续跑。</p>
+              <p>你会在 trace 里看到：模型请求没有停，文字增量继续产生，token 照常计费，直到这轮自然结束。</p>
+              <p>为什么：HTTP 连接断开不会通知 Pi——响应对象的 <code>close</code> 事件没人听，就什么都不会发生。</p>
+              <p>修法：监听响应的 <code>close</code>，断连时 <code>await session.abort()</code> 并取消订阅；再用 <code>agent_settled</code> 事件里的 <code>aborted: true</code> 验证真的停了。</p>
+            </div>
+          </details>
         </section>
 
         <section class="section" id="final-project" aria-labelledby="final-project-title">
           <p class="chapter-kicker">毕业实战 · 把学过的拼起来</p>
           <h2 id="final-project-title">做一个只读销售数据 Agent</h2>
           <p class="lede">
-            目标不是做很大，而是把模型、会话、提示词和业务工具真正接起来。先用内存数据验证机制，再把数据访问替换成你自己的服务。
+            如果按各课的“主线项目”走，<code>data-agent.ts</code> 到这里应该已经长成型：裸 prompt、事件时间线、精确选模型、角色卡、工具、安全门、用户隔离、Web 服务——八步每课一层。本节做最终验收：把完整装配对一遍，确认每一层都在。
           </p>
 
           <h3>项目装配图</h3>
@@ -1780,8 +2000,14 @@ const loader = new DefaultResourceLoader({
 await loader.reload();
 
 const modelRuntime = await ModelRuntime.create();
-const model = (await modelRuntime.getAvailable())[0];
-if (!model) throw new Error("请先配置一个可用模型");
+// 兑现第 04 课：生产代码不靠“第一个可用”碰运气。优先精确指定，
+// 环境变量可覆盖（EVAL_PROVIDER / EVAL_MODEL 的习惯从评测一节延续到这里）。
+const provider = process.env.AGENT_PROVIDER;
+const modelId = process.env.AGENT_MODEL;
+const model =
+  (provider &amp;&amp; modelId ? modelRuntime.getModel(provider, modelId) : undefined)
+  ?? (await modelRuntime.getAvailable())[0];
+if (!model) throw new Error("请先配置一个可用模型（或用 AGENT_PROVIDER / AGENT_MODEL 精确指定）");
 
 const { session } = await createAgentSession({
   model,
@@ -1834,817 +2060,6 @@ try {
           </details>
         </section>
 
-        <section class="section" id="adv-cli" aria-labelledby="adv-cli-title">
-          <p class="chapter-kicker">进阶篇 A · 日常使用</p>
-          <h2 id="adv-cli-title">在终端里用 Pi：不写代码也能干活</h2>
-          <p class="lede">
-            前面的课程是从 SDK 写代码。但 Pi 首先是一个能在终端里读写你本地文件的助手。这一节讲你每天会碰到的界面、命令和选项，以及它们各自的边界。
-          </p>
-
-          <h3>A.1 安装与启动</h3>
-          <div class="code-card">
-            <div class="code-head"><span>终端：安装并确认版本</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="安装 Pi CLI 的命令" tabindex="0"><code>npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-pi --version
-cd /path/to/your/folder
-pi</code></pre>
-          </div>
-          <p>需要 Node.js 22.19 或更新版本。<strong>先 <code>cd</code> 到你要工作的目录再启动</strong>：Pi 用这个目录查找文件、读取项目配置，也用它给会话分组。</p>
-
-          <h3>A.2 第一次使用：登录、选模型</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>启动后最常用的几个斜杠命令</caption>
-              <thead><tr><th scope="col">命令</th><th scope="col">作用</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>/login</code></th><td>选择 provider，用订阅或 API Key 登录。</td></tr>
-                <tr><th scope="row"><code>/model</code></th><td>切换可用模型；按 <code>Ctrl+L</code> 也能打开同一个选择器。</td></tr>
-                <tr><th scope="row"><code>/thinking</code></th><td>设置推理强度；按 <code>Shift+Tab</code> 循环切换。</td></tr>
-                <tr><th scope="row"><code>/settings</code></th><td>修改常用偏好。</td></tr>
-                <tr><th scope="row"><code>/hotkeys</code></th><td>查看当前生效的快捷键。</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>A.3 给任务：用 <code>@</code> 引用文件</h3>
-          <p>在编辑框里输入 <code>@</code> 可以搜索文件并加入提示词，<code>Tab</code> 补全路径。Pi 读文件、搜索、执行命令、编辑文件时都会把过程显示出来，但<strong>不会每一步都请求你确认</strong>。</p>
-          <div class="code-card">
-            <div class="code-head"><span>可以直接在 Pi 里输入的任务示例</span></div>
-            <pre role="region" aria-label="任务示例" tabindex="0"><code>Summarize @meeting-notes.md and save the action items to action-items.md.
-Compare @previous.csv with @current.csv and summarize the important changes.</code></pre>
-          </div>
-
-          <h3>A.4 中途插话：排队、追加、停止</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>Pi 正在工作时，你可以继续输入</caption>
-              <thead><tr><th scope="col">你想做的事</th><th scope="col">操作</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">调整当前任务</th><td>输入后按 <code>Enter</code>：等当前回复和工具调用结束后，指导下一步。</td></tr>
-                <tr><th scope="row">在当前任务之后追加一件事</th><td>按 <code>Alt+Enter</code>：等整个任务结束后再处理。</td></tr>
-                <tr><th scope="row">把排队的消息拿回编辑框</th><td>按 <code>Alt+Up</code>。</td></tr>
-                <tr><th scope="row">停止当前任务</th><td>按 <code>Escape</code>，排队消息会回到编辑框。</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>Windows Terminal 会占用部分 Alt 组合键，遇到问题见 <code>terminal-setup.md</code> 的替代方案。</p>
-
-          <h3>A.5 在脚本里用 Pi：<code>--print</code> 与 JSON 模式</h3>
-          <div class="code-card">
-            <div class="code-head"><span>终端：非交互用法</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="非交互运行 Pi 的命令" tabindex="0"><code>pi --print "Summarize this repository"
-git diff | pi --print "Review this change"
-pi --mode json "Inspect this repository" &gt; events.jsonl</code></pre>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <caption>三种输出方式的区别</caption>
-              <thead><tr><th scope="col">选项</th><th scope="col">输出</th><th scope="col">适合</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>--print</code> / <code>-p</code></th><td>运行提示词，把最终文字写到 stdout，然后退出。</td><td>快速问答、管道处理</td></tr>
-                <tr><th scope="row"><code>--mode json</code></th><td>每个事件输出一行 JSON（JSONL），然后退出。</td><td>程序解析运行过程</td></tr>
-                <tr><th scope="row"><code>--mode rpc</code></th><td>从 stdin 读命令，持续输出响应和事件，直到关闭。</td><td>其他程序长期控制 Pi</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>当 stdin 或 stdout 被重定向，而且没有指定 <code>json</code> 或 <code>rpc</code> 时，Pi 会自动进入 print 模式。</p>
-
-          <h3>A.6 会话：继续、恢复、分叉</h3>
-          <p>Pi 会自动保存会话，并按工作目录分组。退出后用下面的方式接着做：</p>
-          <div class="table-wrap">
-            <table>
-              <caption>会话相关的命令行选项与斜杠命令</caption>
-              <thead><tr><th scope="col">命令</th><th scope="col">作用</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>pi --continue</code>（<code>-c</code>）</th><td>继续当前目录最近的一次会话。</td></tr>
-                <tr><th scope="row"><code>pi --resume</code>（<code>-r</code>）</th><td>打开会话选择器；按 Tab 可以显示其他目录的会话。</td></tr>
-                <tr><th scope="row"><code>/new</code></th><td>开始新会话。</td></tr>
-                <tr><th scope="row"><code>/fork</code></th><td>从某条较早的用户消息分出一个新会话。</td></tr>
-                <tr><th scope="row"><code>/tree</code></th><td>浏览会话树，跳到任意节点。</td></tr>
-                <tr><th scope="row"><code>/compact</code></th><td>压缩当前上下文，可附加压缩说明。</td></tr>
-                <tr><th scope="row"><code>/name</code></th><td>给会话设置显示名称。</td></tr>
-                <tr><th scope="row"><code>pi --no-session</code></th><td>使用不落盘的内存会话，退出即丢失。</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>A.7 斜杠命令、提示词模板与技能</h3>
-          <p>在编辑框输入 <code>/</code> 会列出当前可用的命令。其中有三类是你自己可以添加的，它们解决的问题不同：</p>
-          <div class="card-grid">
-            <article class="card"><h4>提示词模板</h4><p>把一段常用提示词存成 <code>.md</code> 文件，变成 <code>/命令</code>。只做“复用文字”，没有额外脚本。</p></article>
-            <article class="card"><h4>技能（Skill）</h4><p>一个带 <code>SKILL.md</code> 的目录，可以附带脚本和参考资料。Pi 只先告诉模型技能的名字和描述，任务匹配时才读取完整说明。</p></article>
-            <article class="card"><h4>扩展（Extension）</h4><p>用代码注册工具、命令、事件钩子。能力最强，也最需要审查，见本节 B 部分。</p></article>
-          </div>
-
-          <h4>提示词模板示例</h4>
-          <div class="code-card">
-            <div class="code-head"><span>~/.pi/agent/prompts/review.md</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="提示词模板示例" tabindex="0"><code>---
-description: Review staged git changes
-argument-hint: "[focus]"
----
-Review the staged changes. Focus on ${1:-correctness, security, and error handling}.</code></pre>
-          </div>
-          <p>保存后执行 <code>/reload</code>，就能用 <code>/review</code> 或 <code>/review concurrency</code>。文件名决定命令名；<code>${1:-默认值}</code> 表示第一个参数，缺省时使用默认值。</p>
-
-          <h4>技能示例</h4>
-          <div class="code-card">
-            <div class="code-head"><span>pdf-tools/SKILL.md</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="技能文件示例" tabindex="0"><code>---
-name: pdf-tools
-description: Extract text and tables from PDF files. Use when reading, converting, or inspecting PDFs.
----
-
-# PDF tools
-
-Read `references/formats.md` before converting a document. Run scripts relative to this skill directory.</code></pre>
-          </div>
-          <div class="callout good">
-            <strong>写 <code>description</code> 的关键：</strong>
-            模型是根据描述决定要不要加载技能的。写清“做什么”和“什么时候用”。“帮助处理 PDF”这种描述路由信息太少，模型很可能不会加载它。想强制使用，输入 <code>/skill:pdf-tools</code>。
-          </div>
-
-          <h3>A.8 常用命令行选项</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>启动时可以指定的常见选项</caption>
-              <thead><tr><th scope="col">选项</th><th scope="col">作用</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>--model sonnet:high</code></th><td>选模型，并用冒号后缀指定思考强度。</td></tr>
-                <tr><th scope="row"><code>--models a,b</code></th><td>限定 <code>Ctrl+P</code> 循环切换的模型范围。</td></tr>
-                <tr><th scope="row"><code>--tools read,grep</code></th><td>替换默认工具，只有列出的工具会声明给模型。</td></tr>
-                <tr><th scope="row"><code>--no-builtin-tools</code></th><td>关闭默认内置工具，保留扩展和自定义工具。</td></tr>
-                <tr><th scope="row"><code>--session-dir &lt;dir&gt;</code></th><td>指定会话的存放目录。</td></tr>
-                <tr><th scope="row"><code>-n &lt;name&gt;</code></th><td>启动时直接设置会话名称。</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="callout caution">
-            <strong>注意 <code>--tools</code> 是白名单：</strong>
-            默认工具是 <code>read</code>、<code>bash</code>、<code>edit</code>、<code>write</code>。一旦写了 <code>--tools</code>，没列出的内置工具就不会给模型。想保留默认工具又要加一个，用 <code>--tools +名字</code> 而不是重新列全部。
-          </div>
-
-          <h3>A.9 安全：先看清楚再放手</h3>
-          <div class="callout danger">
-            <strong>Pi 不会在每次工具调用前请求确认。</strong>
-            项目里的指令、被读取的文件内容、命令输出，都可能诱导模型做危险操作（提示注入）。项目信任（project trust）只决定是否加载项目级资源，<strong>不是安全边界</strong>。重要或无人值守的任务，应放在容器或虚拟机里运行，只暴露必要的文件和凭据。
-          </div>
-
-          <details class="exercise">
-            <summary>练习 A · 把 Pi 用起来</summary>
-            <div class="exercise-body">
-              <ol>
-                <li>在一个练习目录里运行 <code>pi --print "这个目录里有什么文件？"</code>，观察输出。</li>
-                <li>按 A.7 创建 <code>review.md</code>，执行 <code>/reload</code>，然后用 <code>/review</code> 调用它。</li>
-                <li>用 <code>pi --tools read,grep</code> 启动，让它修改一个文件，观察它能否完成。</li>
-              </ol>
-              <p><strong>检查点：</strong>你能说出 <code>Enter</code> 与 <code>Alt+Enter</code> 的区别，以及为什么 <code>--tools</code> 会“少了”默认工具吗？</p>
-            </div>
-          </details>
-        </section>
-
-        <section class="section" id="adv-ext" aria-labelledby="adv-ext-title">
-          <p class="chapter-kicker">进阶篇 B · 扩展机制全景</p>
-          <h2 id="adv-ext-title">扩展：在 Pi 的生命周期里挂上钩子</h2>
-          <p class="lede">
-            第 7 课只讲了 <code>tool_call</code> 一个钩子。扩展实际上可以订阅很多事件，并注册工具、命令、快捷键，甚至注册模型供应商。这一节先给你一张完整地图。
-          </p>
-
-          <h3>B.1 扩展放在哪里</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>扩展的自动发现位置</caption>
-              <thead><tr><th scope="col">位置</th><th scope="col">作用范围</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>~/.pi/agent/extensions/*.ts</code></th><td>全局，所有项目都生效</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/extensions/*/index.ts</code></th><td>全局，子目录形式</td></tr>
-                <tr><th scope="row"><code>.pi/extensions/…</code></th><td>仅当前项目；项目被信任后才加载</td></tr>
-                <tr><th scope="row"><code>settings.json</code> 的 <code>extensions</code> 字段</th><td>额外指定的路径</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>扩展用 jiti 加载，TypeScript 不需要先编译。临时测试时可以用 <code>pi -e ./my-extension.ts</code>，不必放进目录。</p>
-          <div class="callout caution">
-            <strong>扩展拥有你的全部系统权限。</strong>
-            它可以执行任意代码，所以只安装你信任的来源。
-          </div>
-
-          <h3>B.2 一个完整的最小扩展</h3>
-          <div class="code-card">
-            <div class="code-head"><span>~/.pi/agent/extensions/my-extension.ts</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="最小扩展示例" tabindex="0"><code>import { type ExtensionAPI, isToolCallEventType } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-
-export default function (pi: ExtensionAPI) {
-  // 1. 订阅事件
-  pi.on("session_start", async (_event, ctx) =&gt; {
-    ctx.ui.notify("扩展已加载！", "info");
-  });
-
-  pi.on("tool_call", async (event, ctx) =&gt; {
-    if (isToolCallEventType("bash", event) &amp;&amp; event.input.command.includes("rm -rf")) {
-      const ok = await ctx.ui.confirm("危险操作", "允许执行 rm -rf 吗？");
-      if (!ok) return { block: true, reason: "用户拒绝" };
-    }
-  });
-
-  // 2. 注册一个给模型用的工具
-  pi.registerTool({
-    name: "greet",
-    label: "打招呼",
-    description: "按名字向某人打招呼",
-    parameters: Type.Object({
-      name: Type.String({ description: "要打招呼的人" }),
-    }),
-    async execute(toolCallId, params, signal, onUpdate, ctx) {
-      return {
-        content: [{ type: "text", text: `你好，${params.name}！` }],
-        details: {},
-      };
-    },
-  });
-
-  // 3. 注册一个给用户用的斜杠命令
-  pi.registerCommand("hello", {
-    description: "打个招呼",
-    handler: async (args, ctx) =&gt; {
-      ctx.ui.notify(`你好 ${args || "世界"}！`, "info");
-    },
-  });
-}</code></pre>
-          </div>
-          <p>这段代码展示了扩展最常用的三件事：订阅事件（<code>pi.on</code>）、注册能力（<code>registerTool</code>、<code>registerCommand</code>），以及通过 <code>ctx.ui</code> 与用户交互。</p>
-
-          <h3>B.3 <code>ExtensionAPI</code> 的主要入口</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>扩展工厂函数拿到的 pi 对象能做什么</caption>
-              <thead><tr><th scope="col">方法</th><th scope="col">用途</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>pi.on(event, handler)</code></th><td>订阅事件；返回的函数可以取消这一个订阅。</td></tr>
-                <tr><th scope="row"><code>pi.registerTool(definition)</code></th><td>注册模型能调用的工具（第 6 课的内容）。</td></tr>
-                <tr><th scope="row"><code>pi.registerCommand(name, options)</code></th><td>注册用户输入的斜杠命令。</td></tr>
-                <tr><th scope="row"><code>pi.registerShortcut(key, options)</code></th><td>注册键盘快捷键。</td></tr>
-                <tr><th scope="row"><code>pi.registerFlag(name, options)</code></th><td>注册 CLI 参数。</td></tr>
-                <tr><th scope="row"><code>pi.registerProvider(name, config)</code></th><td>动态注册或覆盖模型供应商（第 4 课的进阶版）。</td></tr>
-                <tr><th scope="row"><code>pi.sendUserMessage()</code> / <code>pi.sendMessage()</code></th><td>由扩展主动发消息给会话。</td></tr>
-                <tr><th scope="row"><code>pi.exec(command, args)</code></th><td>不经过 shell 直接执行命令。</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="callout">
-            <strong>注册工具可以在运行中进行：</strong>
-            <code>registerTool()</code> 不只在加载时调用，也可以在 <code>session_start</code> 或命令处理函数里调用，新工具会立即出现，不需要 <code>/reload</code>。
-          </div>
-
-          <h3>B.4 一次 prompt 的完整事件顺序</h3>
-          <p>这是整个扩展机制的核心。下面的顺序来自官方文档的生命周期说明：</p>
-          <div class="code-card">
-            <div class="code-head"><span>一次用户输入从头到尾经过的事件</span></div>
-            <pre role="region" aria-label="一次 prompt 的事件顺序" tabindex="0"><code>用户输入
- ├─ 扩展命令 /name        命中则直接执行，后面的 input 不再触发
- ├─ input                 可以 continue / transform / handled
- ├─ 展开 /skill:xxx 与 /template
- ├─ before_agent_start    可以注入消息、修改本轮系统提示词
- ├─ agent_start
- │   └─ turn_start                    （每一轮：一次模型请求 + 工具调用）
- │       ├─ context → context_with_system
- │       ├─ before_provider_headers → before_provider_request
- │       ├─ after_provider_response → provider_stream_event
- │       ├─ message_start / message_update / message_end
- │       └─ 每个工具调用：
- │            tool_execution_start
- │            tool_call            可以 block，或原地修改 input
- │            tool_execution_update
- │            tool_result         可以修改结果
- │            tool_execution_end
- │   └─ turn_end
- ├─ agent_end              ⚠ 不代表真正空闲：可能还会重试或处理排队消息
- ├─ agent_before_settle    最后一个可以追加条目、请求继续的点
- └─ agent_settled          最终状态，只通知，适合更新界面状态</code></pre>
-          </div>
-          <div class="callout danger">
-            <strong>别把 <code>agent_end</code> 当成“完成”：</strong>
-            它之后 Pi 仍可能自动重试、压缩上下文，或者处理排队的消息。需要“真正空闲”的通知，用 <code>agent_settled</code>。
-          </div>
-
-          <h3>B.5 事件的四种处理模式</h3>
-          <p>同一个事件的处理方式取决于它属于哪一类。读文档时先确认这一点：</p>
-          <div class="table-wrap">
-            <table>
-              <caption>事件的几种模式</caption>
-              <thead><tr><th scope="col">模式</th><th scope="col">含义</th><th scope="col">例子</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">通知</th><td>返回值被忽略，只用来观察。</td><td><code>agent_settled</code>、<code>thinking_level_select</code>、<code>provider_stream_event</code></td></tr>
-                <tr><th scope="row">原地修改</th><td>直接修改传进来的对象。</td><td><code>tool_call</code> 的 <code>event.input</code>、<code>before_provider_headers</code> 的 <code>headers</code></td></tr>
-                <tr><th scope="row">链式转换</th><td>后面的处理器拿到前面返回的结果。</td><td><code>context</code>、<code>tool_result</code>（可返回部分字段）</td></tr>
-                <tr><th scope="row">门控</th><td>返回特定结果就终止这次操作。</td><td><code>input</code> 返回 <code>handled</code>、<code>tool_call</code> 返回 <code>block</code>、<code>session_before_compact</code> 取消</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>这正是第 7 课的口诀在完整版里的样子：<strong>订阅（<code>subscribe</code>）只用来观察；扩展事件才能按契约影响流程。</strong></p>
-
-          <h3>B.6 <code>tool_call</code>：拦截与改参数</h3>
-          <div class="code-card">
-            <div class="code-head"><span>扩展里改写 bash 命令参数并拦截危险命令</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="tool_call 改参数示例" tabindex="0"><code>import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
-
-pi.on("tool_call", async (event, ctx) =&gt; {
-  if (isToolCallEventType("bash", event)) {
-    // 原地修改参数：改动会真正作用到工具执行上
-    event.input.command = `source ~/.profile\n${event.input.command}`;
-
-    if (event.input.command.includes("rm -rf")) {
-      return { block: true, reason: "危险命令", terminate: true };
-    }
-  }
-});</code></pre>
-          </div>
-          <div class="callout caution">
-            <strong>修改参数之后不会重新校验。</strong>
-            如果你把 <code>maxRows</code> 改成了不合法的值，工具会直接收到它。所以关键限制仍然要在工具的 <code>execute</code> 里再检查一次（第 7 课已经强调过）。
-          </div>
-
-          <h3>B.7 <code>input</code>：在模型看到之前改写用户输入</h3>
-          <div class="code-card">
-            <div class="code-head"><span>把 “?quick …” 转换成简短回答的请求</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="input 事件示例" tabindex="0"><code>pi.on("input", async (event, ctx) =&gt; {
-  if (event.text.startsWith("?quick ")) {
-    return { action: "transform", text: `请简短回答：${event.text.slice(7)}` };
-  }
-  if (event.text === "ping") {
-    ctx.ui.notify("pong", "info");
-    return { action: "handled" };       // 不调用模型
-  }
-  return { action: "continue" };        // 默认：原样放行
-});</code></pre>
-          </div>
-          <p><code>input</code> 看到的是用户输入的原始文本，斜杠模板和技能还没有展开。返回值有三种：<code>continue</code> 放行，<code>transform</code> 改写后继续，<code>handled</code> 直接结束、不进入模型。</p>
-
-          <h3>B.8 会话与资源相关的事件</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>常用的会话、资源事件</caption>
-              <thead><tr><th scope="col">事件</th><th scope="col">什么时候</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>session_start</code></th><td>会话启动、加载、重载或切换后。<code>event.reason</code> 说明原因。</td></tr>
-                <tr><th scope="row"><code>session_shutdown</code></th><td>会话即将结束。用来关闭在 <code>session_start</code> 中打开的资源。</td></tr>
-                <tr><th scope="row"><code>session_before_compact</code></th><td>压缩前，可以取消或自定义压缩。</td></tr>
-                <tr><th scope="row"><code>session_before_switch</code></th><td>执行 <code>/new</code> 或 <code>/resume</code> 之前。</td></tr>
-                <tr><th scope="row"><code>model_select</code></th><td>用户切换模型时。恢复会话时不会触发，需在 <code>session_start</code> 里读取 <code>ctx.model</code>。</td></tr>
-                <tr><th scope="row"><code>resources_discover</code></th><td>会话启动后，扩展可以再添加技能、模板、主题的路径。</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="callout good">
-            <strong>不要在扩展工厂函数里启动后台资源。</strong>
-            进程、socket、文件监听、定时器都应该延迟到 <code>session_start</code> 或真正需要它的时候启动，并在 <code>session_shutdown</code> 里关闭。因为工厂函数可能在根本没有会话的情况下运行。
-          </div>
-
-          <h3>B.9 写扩展的几条规则</h3>
-          <ol>
-            <li><strong>先判断事件类型。</strong>只想观察，就用通知型事件；要干预，就用门控或转换型事件。</li>
-            <li><strong>流式事件（如 <code>message_update</code>）里不要做慢操作。</strong>通知回调应保持轻量，慢的工作放进队列。</li>
-            <li><strong>安全相关的门控要“失败即拒绝”。</strong>如果安全判断做不出来，就返回 <code>block</code>，而不是默认放行。</li>
-            <li><strong>把 <code>ctx.signal</code> 传给你发起的请求。</strong>这样用户按 <code>Escape</code> 时，你的 <code>fetch</code> 也会被取消。</li>
-            <li><strong>用 <code>CONFIG_DIR_NAME</code> 构造配置路径，不要硬编码 <code>.pi</code>。</strong>这样在改名的发行版里也能正常工作。</li>
-          </ol>
-
-          <details class="exercise">
-            <summary>练习 B · 写你的第一个扩展</summary>
-            <div class="exercise-body">
-              <ol>
-                <li>创建 <code>~/.pi/agent/extensions/hello.ts</code>，在 <code>session_start</code> 时用 <code>ctx.ui.notify</code> 通知“扩展已加载”。</li>
-                <li>增加一个 <code>input</code> 处理器：把以 <code>?quick</code> 开头的输入改写成“请简短回答：……”。</li>
-                <li>增加一个 <code>tool_call</code> 处理器：当 bash 命令包含 <code>rm -rf</code> 时，用 <code>ctx.ui.confirm</code> 询问，拒绝则 <code>block</code>。</li>
-              </ol>
-              <p><strong>检查点：</strong>你能说出 <code>agent_end</code> 和 <code>agent_settled</code> 的区别吗？为什么第 3 条要用 <code>tool_call</code> 而不是 <code>subscribe</code>？</p>
-            </div>
-          </details>
-
-        </section>
-
-        <section class="section" id="adv-session" aria-labelledby="adv-session-title">
-          <p class="chapter-kicker">进阶篇 C · 会话与上下文</p>
-          <h2 id="adv-session-title">会话是一棵树，上下文是它的一条分支</h2>
-          <p class="lede">
-            第 8 课讲了“每个用户一个 session”。这里讲另一面：一个会话里可以有多条分支，模型每次只看见当前这一条，而历史太长时，Pi 会把旧内容压缩成摘要。
-          </p>
-
-          <h3>C.1 续接与切换</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>不同入口决定会话在哪个工作目录里运行</caption>
-              <thead><tr><th scope="col">入口</th><th scope="col">工作目录</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>pi --continue</code></th><td>当前目录</td></tr>
-                <tr><th scope="row"><code>pi --resume</code>、<code>/resume</code>、<code>--session</code></th><td>会话自己记录的目录，可能和当前目录不同</td></tr>
-                <tr><th scope="row"><code>pi --fork</code></th><td>当前目录，并生成一个新会话</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>每个会话都记录创建时的工作目录，而且之后不会改变。工具、<code>@路径</code>、项目配置都从这个目录解析。如果目录已经不存在（例如项目被改名），交互模式会问你：在当前目录继续、分叉成新会话，或取消。</p>
-          <p>用 <code>/name</code> 给会话起名字，用 <code>/session</code> 查看当前会话文件、ID、消息数、Token 用量和费用。</p>
-
-          <h3>C.2 分支：<code>/tree</code>、<code>/fork</code>、<code>/clone</code></h3>
-          <p>Pi 把会话存成树。回到较早的位置并不会删除你离开的那条路，只是换了一条分支继续。</p>
-          <div class="table-wrap">
-            <table>
-              <caption>三种分支操作的区别</caption>
-              <thead><tr><th scope="col">操作</th><th scope="col">结果</th><th scope="col">适合</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>/tree</code></th><td>在同一个会话文件里移动</td><td>相关的几种尝试想放在一起</td></tr>
-                <tr><th scope="row"><code>/fork</code></th><td>从较早的一条用户消息开新会话</td><td>这条路应该变成独立的工作</td></tr>
-                <tr><th scope="row"><code>/clone</code></th><td>把当前分支复制成新会话</td><td>想保留当前状态的一份副本</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>在 <code>/tree</code> 里选中一条用户消息，它的文字会回到编辑框，修改后提交就会形成一条新分支。离开一条分支时，Pi 可以把那条分支总结成一段摘要，附在你进入的分支上，保留有用的结论，却不带上全部消息。</p>
-
-          <h3>C.3 上下文压缩（compaction）</h3>
-          <p>自动压缩的触发条件可以用一行公式概括：</p>
-          <div class="code-card">
-            <div class="code-head"><span>自动压缩的触发条件（来自官方压缩文档）</span></div>
-            <pre role="region" aria-label="压缩触发条件" tabindex="0"><code>contextTokens &gt; contextWindow - reserveTokens</code></pre>
-          </div>
-          <p>默认 <code>reserveTokens</code> 是 16384。压缩的过程是：</p>
-          <ol>
-            <li>从最新的消息往回数，累计到约 <code>keepRecentTokens</code>（默认 20000）为止，这里就是切分点；</li>
-            <li>切分点之前的消息交给模型生成结构化摘要，如果之前已经压缩过，会把旧摘要一起带上；</li>
-            <li>在会话里追加一条 <code>compaction</code> 条目，记录摘要和保留的起点；</li>
-            <li>之后发给模型的是：系统提示词 + 摘要 + 切分点之后的消息。</li>
-          </ol>
-          <div class="callout good">
-            <strong>压缩不删除原始记录。</strong>
-            被摘要的消息仍然保存在会话文件里，只是不再发送给模型。导出或回溯时都还能看到。
-          </div>
-          <p>切分点有规则：不会切在工具结果上，因为工具结果必须和它的工具调用放在一起。</p>
-
-          <h3>C.4 手动压缩与设置</h3>
-          <div class="code-card">
-            <div class="code-head"><span>在 Pi 里手动压缩，可附加压缩重点</span></div>
-            <pre role="region" aria-label="手动压缩示例" tabindex="0"><code>/compact
-/compact 只保留数据库迁移相关的决定和未解决的问题</code></pre>
-          </div>
-          <div class="code-card">
-            <div class="code-head"><span>~/.pi/agent/settings.json · 压缩相关设置</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="压缩设置示例" tabindex="0"><code>{
-  "compaction": {
-    "enabled": true,
-    "reserveTokens": 16384,
-    "keepRecentTokens": 20000
-  }
-}</code></pre>
-          </div>
-          <p>关掉自动压缩（<code>enabled: false</code>）不会影响手动的 <code>/compact</code>。压缩失败时（例如服务暂时不可用），修好服务后再执行一次 <code>/compact</code> 即可。</p>
-
-          <h3>C.5 扩展可以接管压缩</h3>
-          <p>压缩前后都有事件：<code>session_before_compact</code> 可以取消压缩，或者自己提供摘要；压缩完成后是 <code>session_compact</code>，失败则是 <code>session_compact_failed</code>。这给了你在团队场景里定制摘要格式的机会，比如固定保留“已确定的决策”这一栏。</p>
-
-          <div class="callout caution">
-            <strong>摘要是有损的。</strong>
-            模型可能遗漏细节。重要的约束（比如“不要改 API 返回格式”）最好同时写进 <code>AGENTS.md</code>，它每次都会加载，不会因为压缩而消失。
-          </div>
-
-          <details class="exercise">
-            <summary>练习 C · 制造一次分支，再压缩一次</summary>
-            <div class="exercise-body">
-              <ol>
-                <li>在一个会话里提出一个问题，得到回答后，用 <code>/tree</code> 回到前面的用户消息，换一种问法再提交。</li>
-                <li>用 <code>/session</code> 查看消息数，再执行 <code>/compact</code>，再看一次消息数和上下文用量。</li>
-              </ol>
-              <p><strong>检查点：</strong>压缩之后，原来的消息还在会话文件里吗？为什么切分点不能落在工具结果上？</p>
-            </div>
-          </details>
-        </section>
-
-        <section class="section" id="adv-integrate" aria-labelledby="adv-integrate-title">
-          <p class="chapter-kicker">进阶篇 D · 集成与对外接口</p>
-          <h2 id="adv-integrate-title">让别的程序用 Pi：JSON、RPC 与 MCP</h2>
-          <p class="lede">
-            第 9 课我们自己用 SSE 把 Agent 推给浏览器。Pi 其实已经提供了几种现成的对外接口，你要先选对方式，再动手。
-          </p>
-
-          <h3>D.1 先选接口</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>几种集成方式的区别（来自官方 RPC 文档）</caption>
-              <thead><tr><th scope="col">方式</th><th scope="col">进程边界</th><th scope="col">控制方式</th><th scope="col">适合</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">SDK</th><td>同一进程</td><td>直接调用 TypeScript 方法和事件</td><td>Node.js / Bun 宿主，需要完整 API</td></tr>
-                <tr><th scope="row">RPC</th><td>子进程</td><td>stdin/stdout 上的 JSONL 命令、响应和事件</td><td>其他语言、IDE、自定义界面</td></tr>
-                <tr><th scope="row">JSON 模式</th><td>子进程，单次运行</td><td>只输出事件流，结束即退出</td><td>脚本解析一次运行的过程</td></tr>
-                <tr><th scope="row">print 模式</th><td>子进程，单次运行</td><td>只输出最终文字</td><td>管道和简单脚本</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="callout">
-            <strong>Node.js 或 Bun 宿主，优先用 SDK。</strong>
-            子进程形式只在你需要进程隔离、或者宿主不是 JavaScript 时才值得。
-          </div>
-
-          <h3>D.2 JSON 模式：一次运行的事件流</h3>
-          <div class="code-card">
-            <div class="code-head"><span>终端：输出 JSONL 事件并保存</span></div>
-            <pre role="region" aria-label="JSON 模式示例" tabindex="0"><code>pi --mode json "Review this repository" &gt; events.jsonl</code></pre>
-          </div>
-          <p>输出的第一行是会话头，之后每行是一个事件。一次简单运行大致是这样的：</p>
-          <div class="code-card">
-            <div class="code-head"><span>events.jsonl（节选，每行一个对象）</span></div>
-            <pre role="region" aria-label="JSONL 事件示例" tabindex="0"><code>{"type":"session","version":3,"id":"uuid","timestamp":"2024-12-03T14:00:00.000Z","cwd":"/path"}
-{"type":"agent_start"}
-{"type":"turn_start"}
-{"type":"message_update","assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"Hello"}}
-{"type":"turn_end","message":{"role":"assistant"},"toolResults":[]}
-{"type":"agent_end","messages":[],"willRetry":false}
-{"type":"agent_settled","aborted":false}</code></pre>
-          </div>
-          <div class="callout caution">
-            <strong>解析 JSONL 不要用 <code>readline</code>。</strong>
-            Node 的 <code>readline</code> 还会把 U+2028、U+2029 当作换行，而它们在 JSON 字符串里是合法的。应该按字节或 UTF-8 流读取，只用 LF 切分。另外 stdout 只放协议数据，日志写到 stderr；读取 stdout 要持续进行，否则管道堵住会让 Pi 停下。
-          </div>
-          <p>注意 <code>agent_end</code> 与 <code>agent_settled</code> 的区别（进阶 B 已经讲过）：前者只结束一轮低级运行，后者才表示 Pi 不会再自动继续。</p>
-
-          <h3>D.3 RPC 模式：长期运行的子进程</h3>
-          <div class="code-card">
-            <div class="code-head"><span>终端：启动 RPC 子进程（不落盘）</span></div>
-            <pre role="region" aria-label="启动 RPC 模式" tabindex="0"><code>pi --mode rpc --no-session</code></pre>
-          </div>
-          <p>之后通过 stdin 发送 JSON 命令，每条命令可以带一个字符串 <code>id</code>，响应会带回同一个 <code>id</code>。命令处理是异步的，所以要按 ID 对应，而不是按顺序对应：</p>
-          <div class="code-card">
-            <div class="code-head"><span>stdin 发送 / stdout 返回</span></div>
-            <pre role="region" aria-label="RPC 命令与响应" tabindex="0"><code>{"id":"req-2","type":"prompt","message":"Review this repository"}
-{"id":"req-2","type":"response","command":"prompt","success":true,"data":{"disposition":"started"}}</code></pre>
-          </div>
-          <div class="callout danger">
-            <strong>“prompt 成功”不代表模型已经回答完。</strong>
-            响应只说明这条消息被接受、排队或处理了。需要知道什么时候真正结束，要持续读取事件，并等待 <code>agent_settled</code>。如果响应的 <code>disposition</code> 是 <code>"handled"</code>，就根本没有开始新的运行，不要再等它。
-          </div>
-          <p>如果你用 TypeScript 作为宿主，不必自己拼协议，可以使用导出的 <code>RpcClient</code>，它负责启动子进程、按 ID 配对响应，并把事件交给监听器：</p>
-          <div class="code-card">
-            <div class="code-head"><span>src/rpc-demo.ts · 用 RpcClient 控制子进程</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="RpcClient 示例" tabindex="0"><code>import { RpcClient } from "@earendil-works/pi-coding-agent";
-
-const client = new RpcClient({ cwd: process.cwd() });
-await client.start();
-try {
-  const events = await client.promptAndWait("华东有哪些销售记录？");
-  console.log(`收到 ${events.length} 个事件`);
-} finally {
-  await client.stop();
-}</code></pre>
-          </div>
-
-          <h3>D.4 MCP：把外部服务变成工具</h3>
-          <p>MCP（Model Context Protocol）让 Pi 接入别人写好的工具服务器，不用你自己在扩展里重写。它支持本地 stdio 和远程 HTTP 两种方式。</p>
-          <div class="code-card">
-            <div class="code-head"><span>终端：添加服务器、检查连接、启动 Pi</span></div>
-            <pre role="region" aria-label="MCP 命令示例" tabindex="0"><code>pi mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem .
-pi mcp add docs --url https://example.com/mcp --bearer-token-env-var DOCS_TOKEN
-pi mcp list
-pi</code></pre>
-          </div>
-          <p>服务器配置保存在 <code>~/.pi/agent/mcp.json</code>（个人使用）或 <code>.pi/mcp.json</code>（项目共用，需要信任项目后才加载）：</p>
-          <div class="code-card">
-            <div class="code-head"><span>~/.pi/agent/mcp.json</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="mcp.json 示例" tabindex="0"><code>{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
-    },
-    "docs": {
-      "url": "https://example.com/mcp",
-      "headers": { "Authorization": "Bearer ${DOCS_TOKEN}" },
-      "description": "Search and read the product documentation"
-    }
-  }
-}</code></pre>
-          </div>
-          <ul>
-            <li>工具名会变成 <code>mcp__&lt;服务器名&gt;__&lt;工具名&gt;</code>，一眼就能看出来源。</li>
-            <li><code>command</code> 只能是一个可执行文件，参数放在 <code>args</code> 里，不是一整条 shell 命令。</li>
-            <li>凭据用 <code>${ENV}</code> 引用环境变量，不要直接写进文件。</li>
-            <li>远程服务支持 OAuth：只写 <code>url</code>，遇到需要登录时用 <code>/mcp login 服务器名</code>。</li>
-            <li>在会话里用 <code>/mcp</code> 查看状态、重连、启用或禁用某个服务器；修改配置文件后执行 <code>/reload</code>。</li>
-          </ul>
-          <div class="callout caution">
-            <strong>MCP 服务器就是可执行代码。</strong>
-            它的工具拥有和 Pi 相同的权限。只添加你信任的服务器，项目级的 <code>.pi/mcp.json</code> 尤其要先审查。
-          </div>
-
-          <h3>D.5 和第 9 课的 SSE 方案怎么选</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>自己写 SSE 服务与使用 RPC 的取舍</caption>
-              <thead><tr><th scope="col">问题</th><th scope="col">自己写 SSE 服务（第 9 课）</th><th scope="col">RPC 子进程</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">鉴权、用户隔离</th><td>你自己负责，通常更灵活</td><td>要自己在外层做，Pi 只是子进程</td></tr>
-                <tr><th scope="row">进程隔离</th><td>与 Web 服务同进程</td><td>Pi 在独立进程里，崩溃不拖垮宿主</td></tr>
-                <tr><th scope="row">会话多路复用</th><td>你决定一个用户对应哪个 session</td><td>每个子进程通常对应一个会话，需要自己管理进程池</td></tr>
-                <tr><th scope="row">开发量</th><td>要自己拼事件、断线取消</td><td>协议已定义好，但要管理子进程生命周期</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>无论哪种方式，多用户场景下的隔离和授权都是你的责任。Pi 的协议不替你做这些。</p>
-
-          <details class="exercise">
-            <summary>练习 D · 用 JSON 模式读一次运行</summary>
-            <div class="exercise-body">
-              <ol>
-                <li>运行 <code>pi --mode json "这个目录里有什么？" &gt; events.jsonl</code>。</li>
-                <li>写一个小脚本，只用 LF 切分，统计每种 <code>type</code> 出现的次数。</li>
-                <li>再用 <code>pi --mode rpc --no-session</code> 启动，手动发一条带 <code>id</code> 的 <code>prompt</code>，找到对应的响应。</li>
-              </ol>
-              <p><strong>检查点：</strong>你能说出 <code>disposition</code> 为 <code>"handled"</code> 时为什么不应该等 <code>agent_settled</code> 吗？</p>
-            </div>
-          </details>
-        </section>
-
-        <section class="section" id="adv-config" aria-labelledby="adv-config-title">
-          <p class="chapter-kicker">进阶篇 E · 配置、模型与环境</p>
-          <h2 id="adv-config-title">Pi 的配置分两层：用户级和项目级</h2>
-          <p class="lede">
-            大多数“为什么 Pi 行为不一样”的问题，答案都在配置文件里。这一节帮你知道每个文件管什么，以及谁覆盖谁。
-          </p>
-
-          <h3>E.1 用户目录与项目目录</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>常用配置文件（节选，完整列表见官方配置文档）</caption>
-              <thead><tr><th scope="col">路径</th><th scope="col">作用</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><code>~/.pi/agent/settings.json</code></th><td>用户级设置，包括偏好、默认值、资源路径</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/models.json</code></th><td>兼容的模型服务端点与模型覆盖</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/auth.json</code></th><td>通过 <code>/login</code> 保存的 API Key 与 OAuth 凭据</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/mcp.json</code></th><td>所有项目可用的 MCP 服务器</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/keybindings.json</code></th><td>自定义快捷键</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/AGENTS.md</code></th><td>跨目录生效的个人说明</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/SYSTEM.md</code></th><td>替换 Pi 默认的系统提示词</td></tr>
-                <tr><th scope="row"><code>~/.pi/agent/APPEND_SYSTEM.md</code></th><td>在默认系统提示词后追加说明</td></tr>
-                <tr><th scope="row"><code>.pi/settings.json</code>、<code>.pi/mcp.json</code>、<code>.pi/extensions/</code> 等</th><td>项目级配置，项目被信任后才加载</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>几条规则：</p>
-          <ul>
-            <li>配置目录默认是 <code>~/.pi/agent</code>，可以用环境变量 <code>PI_CODING_AGENT_DIR</code> 改。</li>
-            <li>项目的 <code>SYSTEM.md</code> 优先于用户目录里的同名文件，两者不会合并。</li>
-            <li><code>AGENTS.md</code> 之类的上下文文件不需要项目信任也会加载，所以把它当作不可信的输入对待。</li>
-            <li>修改设置后执行 <code>/reload</code>，或者用 <code>/settings</code> 在界面里改常用项。</li>
-          </ul>
-
-          <h3>E.2 常用设置</h3>
-          <div class="code-card">
-            <div class="code-head"><span>settings.json · 一个典型的个人配置片段</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="settings.json 示例" tabindex="0"><code>{
-  "defaultTools": ["read", "bash", "edit", "write"],
-  "compaction": {
-    "enabled": true,
-    "reserveTokens": 16384,
-    "keepRecentTokens": 20000
-  }
-}</code></pre>
-          </div>
-          <p>具体有哪些选项、默认值是多少，以官方的 <code>settings.md</code> 为准。前面讲过的 <code>compaction</code> 就是其中一组。</p>
-
-          <h3>E.3 模型：先 <code>/login</code>，再 <code>/model</code></h3>
-          <p>对内置支持的服务商，两步就够了：<code>/login</code> 选择服务商并登录，<code>/model</code> 选模型。在 <code>/model</code> 里按 <code>Ctrl+S</code> 可以把它设为新会话的默认模型；<code>Ctrl+P</code> 在已配置的模型之间循环。</p>
-          <p>凭据的查找顺序是：命令行 <code>--api-key</code> → <code>auth.json</code> → <code>models.json</code> 里的 <code>apiKey</code> → 服务商的环境变量。CI 之类不想写入凭据的环境，直接用环境变量就行。</p>
-
-          <h3>E.4 接入兼容的本地或私有端点</h3>
-          <p>如果服务端实现的是 OpenAI、Anthropic 或 Google 兼容接口，就在 <code>models.json</code> 里声明它：</p>
-          <div class="code-card">
-            <div class="code-head"><span>~/.pi/agent/models.json · 本地 Ollama 示例</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="models.json 示例" tabindex="0"><code>{
-  "$schema": "https://pi.dev/schemas/models.schema.json",
-  "providers": {
-    "ollama": {
-      "baseUrl": "http://localhost:11434/v1",
-      "api": "openai-completions",
-      "apiKey": "ollama",
-      "models": [
-        { "id": "qwen2.5-coder:7b" }
-      ]
-    }
-  }
-}</code></pre>
-          </div>
-          <p>这里 <code>apiKey</code> 写的是一个占位值，Ollama 会忽略它。真正需要密钥的地方，用 <code>$变量名</code> 或 <code>${变量名}</code> 引用环境变量，第 4 课的 <code>$MY_COMPANY_API_KEY</code> 就是这种写法。<code>!命令</code> 形式则会在请求时运行命令取得密钥，且不缓存。</p>
-
-          <h3>E.5 本地模型：llama.cpp</h3>
-          <p>如果你有 GGUF 格式的本地模型，Pi 可以直接连接 llama.cpp 的路由服务器：路由器发现模型并按需加载，<code>/llama</code> 管理它，<code>/model</code> 选择已加载的模型。具体的服务器启动和模型目录结构，见官方的 <code>llama-cpp.md</code>。</p>
-
-          <details class="exercise">
-            <summary>练习 E · 把个人偏好和项目说明分开</summary>
-            <div class="exercise-body">
-              <ol>
-                <li>在 <code>~/.pi/agent/AGENTS.md</code> 写一条个人偏好（例如“回答用中文”）。</li>
-                <li>在一个项目的根目录写一个 <code>AGENTS.md</code>，写这个项目的约定。</li>
-                <li>在两个目录里分别问同一个问题，观察回答风格是否都受到了影响。</li>
-              </ol>
-              <p><strong>检查点：</strong>如果把 API Key 同时写进 <code>auth.json</code> 和环境变量，哪一个会先被使用？</p>
-            </div>
-          </details>
-        </section>
-
-        <section class="section" id="adv-security" aria-labelledby="adv-security-title">
-          <p class="chapter-kicker">进阶篇 F · 安全与上线</p>
-          <h2 id="adv-security-title">把 Agent 放进边界里运行</h2>
-          <p class="lede">
-            Pi 默认以你的系统用户身份运行，能读写你能访问的所有文件，并且不会为每次工具调用请求确认。这一节讲清楚边界在哪里，以及怎样把它收紧。
-          </p>
-
-          <h3>F.1 威胁来自哪里</h3>
-          <ul>
-            <li><strong>提示注入：</strong>文件内容、网页、命令输出、项目指令都可能夹带诱导模型执行危险操作的文字。</li>
-            <li><strong>模型的错误判断：</strong>它可能删错文件、运行错误的命令，或者把数据发到不该去的地方。</li>
-            <li><strong>扩展、技能、MCP 服务器：</strong>它们作为 Pi 的一部分运行，权限与 Pi 相同。</li>
-          </ul>
-          <div class="callout danger">
-            <strong>查看对话记录、使用项目信任，都不是安全边界。</strong>
-            它们只能帮你发现问题，不能阻止问题发生。真正的边界来自操作系统、容器或虚拟机。
-          </div>
-
-          <h3>F.2 项目信任</h3>
-          <p>当一个目录含有 <code>.pi/settings.json</code>、<code>.pi/mcp.json</code>、<code>.pi/extensions</code>、<code>.pi/skills</code>、<code>.pi/prompts</code> 等项目资源时，Pi 会先询问是否信任。信任之后，这些项目资源才会加载，包括项目扩展和项目里的 MCP 服务器。</p>
-          <div class="table-wrap">
-            <table>
-              <caption>信任决定的来源，按优先级排列</caption>
-              <thead><tr><th scope="col">顺序</th><th scope="col">来源</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">1</th><td>命令行的 <code>--approve</code> / <code>--no-approve</code></td></tr>
-                <tr><th scope="row">2</th><td>用户级或命令行扩展的 <code>project_trust</code> 事件</td></tr>
-                <tr><th scope="row">3</th><td>保存过的决定（<code>/trust</code> 写入 <code>~/.pi/agent/trust.json</code>）</td></tr>
-                <tr><th scope="row">4</th><td>全局设置 <code>defaultProjectTrust</code>，默认 <code>"ask"</code></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>在打印、JSON、RPC 模式下没有交互提示。如果自动化脚本需要加载项目资源，要显式加上 <code>--approve</code>。</p>
-
-          <h3>F.3 选择隔离方式</h3>
-          <div class="table-wrap">
-            <table>
-              <caption>几种常见的隔离方式（节选）</caption>
-              <thead><tr><th scope="col">方式</th><th scope="col">Pi 运行的位置</th><th scope="col">适合</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">直接运行</th><td>你的系统用户</td><td>只能靠专用账号收窄权限，共享系统和网络</td></tr>
-                <tr><th scope="row">普通 Docker 容器</th><td>容器内，包括内置工具和扩展</td><td>最直接的本地边界，适合大多数人</td></tr>
-                <tr><th scope="row">托管沙箱（如 Docker Sandboxes、OpenShell）</th><td>受管理的沙箱</td><td>需要更细的网络和凭据策略</td></tr>
-                <tr><th scope="row">扩展方式（如 Gondolin）</th><td>宿主机，只隔离内置工具</td><td>只想隔离命令执行，其他扩展仍在宿主机上</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>隔离的范围取决于你暴露了什么。把整个 <code>~/.pi/agent</code> 挂进容器，等于把凭据和会话都交出去了；读写挂载的工作目录，改动也会直接写回宿主机。</p>
-
-          <h3>F.4 一个最小的 Docker 运行方式</h3>
-          <div class="code-card">
-            <div class="code-head"><span>Dockerfile.pi</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="Dockerfile 示例" tabindex="0"><code>FROM node:24-bookworm-slim
-
-RUN apt-get update \
-  &amp;&amp; apt-get install -y --no-install-recommends bash ca-certificates git ripgrep \
-  &amp;&amp; rm -rf /var/lib/apt/lists/*
-RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-
-WORKDIR /workspace
-ENTRYPOINT ["pi"]</code></pre>
-          </div>
-          <div class="code-card">
-            <div class="code-head"><span>终端：只挂载当前工作目录，配置放在命名卷里</span><button class="copy-button" type="button">复制</button></div>
-            <pre role="region" aria-label="docker run 示例" tabindex="0"><code>docker build -t pi-sandbox -f Dockerfile.pi .
-docker run --rm -it \
-  -e ANTHROPIC_API_KEY \
-  -v "$PWD:/workspace" \
-  -v pi-agent-home:/root/.pi/agent \
-  pi-sandbox</code></pre>
-          </div>
-          <p>这里 <code>-v pi-agent-home:/root/.pi/agent</code> 用的是独立的命名卷，而不是宿主机的 <code>~/.pi/agent</code>。进入 Pi 后执行 <code>!pwd</code>，应该看到 <code>/workspace</code>，说明挂载正确。</p>
-
-          <h3>F.5 上线前的检查清单</h3>
-          <ol>
-            <li>Pi 只能访问任务需要的文件和服务。</li>
-            <li>凭据用环境变量或短期令牌，不写进仓库、截图或分享的会话。</li>
-            <li>网络访问按需开放，任务不需要联网就关掉。</li>
-            <li>扩展、技能、MCP 服务器都审查过来源和代码。</li>
-            <li>重要改动前有备份或版本控制，结果在应用到其他系统前先看 diff。</li>
-            <li>导出或分享会话前先检查，里面可能包含文件内容、命令输出和曾经暴露的凭据。</li>
-          </ol>
-
-          <details class="exercise">
-            <summary>练习 F · 画出你的边界</summary>
-            <div class="exercise-body">
-              <p>对你计划运行 Pi 的任务，回答下面三个问题：</p>
-              <ol>
-                <li>Pi 需要读写哪些目录？哪些绝对不能让它碰到？</li>
-                <li>它需要哪些凭据？能否换成只读或短期的？</li>
-                <li>它需要联网吗？如果不需要，你打算怎样关掉网络？</li>
-              </ol>
-              <p><strong>检查点：</strong>按这三点写出的挂载或权限方案，能否在不依赖“提示词写得好”的前提下成立？</p>
-            </div>
-          </details>
-        </section>
-
         <section class="section" id="debugging" aria-labelledby="debugging-title">
           <p class="chapter-kicker">附录 · 出错时按层排查</p>
           <h2 id="debugging-title">先定位在哪一层，不要盲目改代码</h2>
@@ -2658,16 +2073,18 @@ docker run --rm -it \
                 <tr><th scope="row">模型不调用工具</th><td>工具是否注册、是否激活、description 是否清晰、模型是否支持工具调用</td><td>模型是基于描述选择工具；工具不在可用列表时不会调用。</td></tr>
                 <tr><th scope="row">钩子没有拦截</th><td>是否写在 extensionFactories；事件名、返回结构和 loader.reload()</td><td>扩展钩子和 subscribe 是不同通道。</td></tr>
                 <tr><th scope="row">Web 用户互相看到内容</th><td>共享 session / 缓存的用户上下文 / 服务端授权</td><td>这是应用隔离 bug，不能靠 prompt 修补。</td></tr>
+                <tr><th scope="row">SDK 里 mcp__* 工具不出现</th><td>是否调用了 <code>await session.bindExtensions({})</code>；mcp.json 是否被读取</td><td>MCP 连接挂在 session_start 上，不 bind 就不连（<a href="sdk.html#sdk-ext">SDK 深入篇 02</a>）。症状：不报错，但工具一直不在。</td></tr>
               </tbody>
             </table>
           </div>
-          <h3>官方源码和文档入口</h3>
+          <h3>官方文档、示例与源码入口</h3>
           <ul class="source-list">
-            <li><a href="https://github.com/earendil-works/pi/tree/main/packages/coding-agent/docs/sdk.md">SDK 使用说明</a>：session、模型和工具配置。</li>
-            <li><a href="https://github.com/earendil-works/pi/tree/main/packages/coding-agent/docs/extensions.md">扩展事件说明</a>：事件契约、触发时机和工具生命周期。</li>
-            <li><a href="https://github.com/earendil-works/pi/tree/main/packages/coding-agent/src/core/sdk.ts">createAgentSession 源码</a>：SDK 组装入口。</li>
-            <li><a href="https://github.com/earendil-works/pi/tree/main/packages/coding-agent/src/core/agent-session.ts">AgentSession 源码</a>：prompt、订阅事件和会话行为。</li>
-            <li><a href="https://github.com/earendil-works/pi/tree/main/packages/agent/src/agent-loop.ts">Agent Loop 源码</a>：模型请求与工具执行循环。</li>
+            <li><a href="https://docs.pi.dev/latest/sdk">SDK 使用说明</a>：session、模型和工具配置；<a href="https://docs.pi.dev/latest/extensions">扩展事件说明</a>：事件契约、触发时机和工具生命周期。</li>
+            <li><a href="https://docs.pi.dev/latest/cli">CLI 参考</a>与<a href="https://docs.pi.dev/latest/settings">设置清单</a>：命令行选项与每个设置的默认值。</li>
+            <li><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/examples/sdk">官方 SDK 示例（01–14）</a>：从最小示例到 codemode/MCP 集成，全部随仓库做过类型检查；其中 14 号示例解释了 SDK 会话为什么默认没有 MCP，要怎么手动加。</li>
+            <li><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/sdk.ts">createAgentSession 源码</a>：SDK 组装入口。</li>
+            <li><a href="https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/agent-session.ts">AgentSession 源码</a>：prompt、订阅事件和会话行为。</li>
+            <li><a href="https://github.com/earendil-works/pi/blob/main/packages/agent/src/agent-loop.ts">Agent Loop 源码</a>：模型请求与工具执行循环。</li>
             <li><a href="https://github.com/earendil-works/pi/releases">Pi Agent Releases</a>：版本变化与 breaking changes。</li>
           </ul>
           <div class="callout">

@@ -1,0 +1,1350 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="在 Pi Agent SDK 里使用扩展、Skill 与 MCP：三种接法与生效时机、技能发现与过滤、MCP 工厂、完整生命周期总纲。">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    >
+    <title>SDK 深入篇 · Pi Agent 的扩展、Skill、MCP 与生命周期</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f6f7fb;
+        --surface: #fff;
+        --surface-2: #f0f3fa;
+        --ink: #20263a;
+        --muted: #58627a;
+        --line: #dce2ef;
+        --brand: #4e54c8;
+        --brand-dark: #353b9f;
+        --brand-wash: #eceeff;
+        --green: #176b4b;
+        --green-wash: #e8f6ef;
+        --orange: #814900;
+        --orange-wash: #fff4df;
+        --red: #a3293d;
+        --red-wash: #fff0f2;
+        --focus-ring: #875600;
+        --code: #171b2b;
+        --code-ink: #e9edff;
+        --shadow: 0 16px 42px rgb(38 48 89 / 8%);
+        --radius: 18px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        scroll-behavior: smooth;
+        scroll-padding-top: 1.5rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #111522;
+          --surface: #1a2030;
+          --surface-2: #222a3d;
+          --ink: #eef1ff;
+          --muted: #b3bdd4;
+          --line: #343e56;
+          --brand: #a5a9ff;
+          --brand-dark: #d2d4ff;
+          --brand-wash: #292e4e;
+          --green: #80d6ad;
+          --green-wash: #18382e;
+          --orange: #ffd27f;
+          --orange-wash: #3a2e1c;
+          --red: #ff9aa8;
+          --red-wash: #3b2029;
+          --focus-ring: #ffd27f;
+          --code: #10131d;
+          --code-ink: #edf0ff;
+          --shadow: 0 16px 42px rgb(0 0 0 / 24%);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-inline-size: 320px;
+        background: var(--page);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse at 84% 0%, rgb(103 111 224 / 10%), transparent 36rem),
+          var(--page);
+        font-size: 1rem;
+        line-height: 1.72;
+      }
+
+      a {
+        color: var(--brand-dark);
+        text-underline-offset: 0.2em;
+        text-decoration-thickness: 1px;
+      }
+
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+
+      :where(a, button, input, summary):focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 20;
+        inset-block-start: 0.75rem;
+        inset-inline-start: 0.75rem;
+        padding: 0.65rem 1rem;
+        transform: translateY(-160%);
+        border-radius: 0.5rem;
+        color: #fff;
+        background: #20263a;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .reading-progress {
+        position: fixed;
+        z-index: 15;
+        inset: 0 0 auto;
+        block-size: 4px;
+        background: transparent;
+      }
+
+      .reading-progress span {
+        display: block;
+        inline-size: 0;
+        block-size: 100%;
+        background: linear-gradient(90deg, #686ee6, #17a87b);
+      }
+
+      .page-shell {
+        display: grid;
+        grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+        gap: clamp(1.25rem, 3vw, 3rem);
+        inline-size: min(1440px, 100%);
+        margin-inline: auto;
+        padding: clamp(1rem, 3vw, 2.75rem);
+      }
+
+      .side-rail {
+        position: sticky;
+        inset-block-start: 1.5rem;
+        align-self: start;
+        max-block-size: calc(100dvh - 3rem);
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-block-end: 0.5rem;
+        color: var(--ink);
+        font-size: 1.03rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        inline-size: 2.3rem;
+        aspect-ratio: 1;
+        place-items: center;
+        border-radius: 0.75rem;
+        color: #fff;
+        background: linear-gradient(135deg, #686ee6, #2c9d83);
+        font-weight: 900;
+      }
+
+      .rail-caption {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .toc-title {
+        margin: 1rem 0 0.4rem;
+        color: var(--muted);
+        font-size: 0.73rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .toc {
+        display: grid;
+        gap: 0.2rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .toc a {
+        display: block;
+        padding: 0.48rem 0.65rem;
+        border-radius: 0.6rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        text-decoration: none;
+      }
+
+      .toc a:hover,
+      .toc a[aria-current="location"] {
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+      }
+
+      .rail-note {
+        margin-block-start: 1.25rem;
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        color: var(--muted);
+        font-size: 0.79rem;
+      }
+
+      .page-links {
+        display: grid;
+        gap: 0.25rem;
+        margin-block: 0.75rem 1rem;
+      }
+
+      .page-links a {
+        display: block;
+        padding: 0.42rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .page-links a:hover,
+      .page-links a[aria-current="page"] {
+        border-color: var(--brand);
+        background: var(--brand-wash);
+      }
+
+      main {
+        min-inline-size: 0;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(1.5rem, 5vw, 4rem);
+        border: 1px solid var(--line);
+        border-radius: calc(var(--radius) + 4px);
+        background:
+          radial-gradient(circle at 86% 20%, rgb(93 102 219 / 18%), transparent 16rem),
+          var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 0.7rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--ink);
+        line-height: 1.25;
+        text-wrap: balance;
+      }
+
+      h1 {
+        max-inline-size: 17ch;
+        margin: 1.1rem 0 0.85rem;
+        font-size: clamp(2.15rem, 5vw, 4.3rem);
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin-block: 0 1rem;
+        font-size: clamp(1.55rem, 3vw, 2.2rem);
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin-block: 1.8rem 0.65rem;
+        font-size: 1.24rem;
+      }
+
+      h4 {
+        margin-block: 1.25rem 0.45rem;
+        font-size: 1.05rem;
+      }
+
+      p {
+        margin-block: 0.65rem 1rem;
+      }
+
+      .hero-lede {
+        max-inline-size: 66ch;
+        color: var(--muted);
+        font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-block-start: 1.4rem;
+      }
+
+      .button {
+        display: inline-flex;
+        min-block-size: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 1rem;
+        border: 1px solid var(--brand);
+        border-radius: 0.7rem;
+        color: #fff;
+        background: #4e54c8;
+        font: inherit;
+        font-weight: 750;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .button.secondary {
+        color: var(--brand-dark);
+        background: var(--surface);
+      }
+
+      .hero-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.2rem;
+        margin-block-start: 1.5rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .section {
+        margin-block-start: 1.5rem;
+        padding: clamp(1.2rem, 3vw, 2.35rem);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        scroll-margin-block-start: 1rem;
+      }
+
+      .chapter-kicker {
+        margin-block-end: 0.4rem;
+        color: var(--brand-dark);
+        font-size: 0.78rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .lede {
+        max-inline-size: 75ch;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .callout {
+        margin-block: 1rem;
+        padding: 1rem 1.1rem;
+        border-inline-start: 4px solid var(--brand);
+        border-radius: 0 0.7rem 0.7rem 0;
+        background: var(--brand-wash);
+      }
+
+      .callout p:last-child {
+        margin-block-end: 0;
+      }
+
+      .callout.good {
+        border-color: var(--green);
+        background: var(--green-wash);
+      }
+
+      .callout.caution {
+        border-color: #d58a17;
+        background: var(--orange-wash);
+      }
+
+      .callout.danger {
+        border-color: var(--red);
+        background: var(--red-wash);
+      }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 0.85rem;
+        margin-block: 1rem;
+      }
+
+      .card {
+        min-inline-size: 0;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        background: var(--surface);
+      }
+
+      .card h3,
+      .card h4 {
+        margin-block-start: 0;
+      }
+
+      .card p:last-child {
+        margin-block-end: 0;
+      }
+
+      .step-number {
+        display: inline-grid;
+        inline-size: 1.8rem;
+        aspect-ratio: 1;
+        place-items: center;
+        margin-inline-end: 0.35rem;
+        border-radius: 50%;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.86rem;
+        font-weight: 850;
+      }
+
+      figure {
+        margin: 1.25rem 0;
+      }
+
+      figcaption {
+        margin-block-start: 0.55rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .diagram {
+        overflow-x: auto;
+        padding: 1.15rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background:
+          linear-gradient(135deg, var(--surface-2), var(--surface));
+      }
+
+      .diagram svg {
+        display: block;
+        inline-size: 100%;
+        min-inline-size: 640px;
+        block-size: auto;
+      }
+
+      .diagram text {
+        fill: var(--ink);
+        font-family: inherit;
+        font-size: 15px;
+      }
+
+      .diagram .small {
+        fill: var(--muted);
+        font-size: 12px;
+      }
+
+      .diagram .node {
+        fill: var(--surface);
+        stroke: var(--brand);
+        stroke-width: 2;
+      }
+
+      .diagram .node-green {
+        fill: var(--green-wash);
+        stroke: var(--green);
+        stroke-width: 2;
+      }
+
+      .diagram .node-orange {
+        fill: var(--orange-wash);
+        stroke: #bd7810;
+        stroke-width: 2;
+      }
+
+      .diagram .arrow {
+        fill: none;
+        stroke: var(--brand);
+        stroke-width: 2.5;
+      }
+
+      .diagram .arrow-muted {
+        fill: none;
+        stroke: #7a849d;
+        stroke-width: 2;
+      }
+
+      .diagram marker path {
+        fill: var(--brand);
+      }
+
+      .diagram marker#muted-arrowhead path,
+      .diagram marker#event-muted-arrowhead path {
+        fill: #7a849d;
+      }
+
+      #learning-map-diagram .arrow {
+        marker-end: url("#learning-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow {
+        marker-end: url("#loop-arrowhead");
+      }
+
+      #prompt-diagram .arrow {
+        marker-end: url("#prompt-arrowhead");
+      }
+
+      #tool-diagram .arrow {
+        marker-end: url("#tool-arrowhead");
+      }
+
+      #event-diagram .arrow {
+        marker-end: url("#event-arrowhead");
+      }
+
+      #session-diagram .arrow {
+        marker-end: url("#session-arrowhead");
+      }
+
+      #web-diagram .arrow {
+        marker-end: url("#web-arrowhead");
+      }
+
+      #arch-diagram .arrow {
+        marker-end: url("#arch-arrowhead");
+      }
+
+      #lifecycle-diagram .arrow {
+        marker-end: url("#life-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow-muted {
+        marker-end: url("#muted-arrowhead");
+      }
+
+      #event-diagram .arrow-muted {
+        marker-end: url("#event-muted-arrowhead");
+      }
+
+      .diagram-description {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .code-card {
+        margin-block: 1rem;
+        overflow: hidden;
+        border: 1px solid #30384e;
+        border-radius: 0.9rem;
+        background: var(--code);
+        color: var(--code-ink);
+      }
+
+      .code-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.55rem 0.8rem;
+        border-block-end: 1px solid #343c52;
+        color: #bfc8e3;
+        font-size: 0.76rem;
+      }
+
+      .copy-button {
+        min-block-size: 2rem;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid #68718a;
+        border-radius: 0.45rem;
+        color: #f5f6ff;
+        background: #242a3b;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      pre {
+        max-inline-size: 100%;
+        margin: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1rem;
+        color: var(--code-ink);
+        font: 0.86rem/1.62 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        tab-size: 2;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 0.91em;
+      }
+
+      p code,
+      li code,
+      td code {
+        overflow-wrap: anywhere;
+        padding: 0.12em 0.34em;
+        border: 1px solid var(--line);
+        border-radius: 0.33rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+      }
+
+      .code-card pre code {
+        padding: 0;
+        border: 0;
+        color: inherit;
+        background: transparent;
+        font-size: inherit;
+      }
+
+      .line-note {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.28fr) minmax(0, 1fr);
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border-block-start: 1px solid #343c52;
+        color: #c4cbe0;
+        font-size: 0.82rem;
+      }
+
+      .line-note strong {
+        color: #aeb4ff;
+      }
+
+      .table-wrap {
+        max-inline-size: 100%;
+        margin-block: 1rem;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+      }
+
+      table {
+        inline-size: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+
+      caption {
+        padding: 0.75rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: start;
+      }
+
+      th,
+      td {
+        min-inline-size: 8rem;
+        padding: 0.7rem 0.8rem;
+        border-block-start: 1px solid var(--line);
+        text-align: start;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--ink);
+        background: var(--surface-2);
+      }
+
+      td {
+        color: var(--muted);
+      }
+
+      .exercise {
+        margin-block: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        background: var(--surface);
+      }
+
+      .exercise > summary {
+        padding: 0.85rem 1rem;
+        color: var(--brand-dark);
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .exercise-body {
+        padding: 0 1rem 1rem;
+      }
+
+      .exercise-body > :last-child {
+        margin-block-end: 0;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-block: 1rem;
+      }
+
+      .tag {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface-2);
+        font-size: 0.78rem;
+      }
+
+      .source-list {
+        display: grid;
+        gap: 0.45rem;
+        padding-inline-start: 1.25rem;
+      }
+
+      .source-list li {
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-block: 1.5rem 3rem;
+        padding: 1.2rem;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 900px) {
+        .page-shell {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 1rem;
+          padding: 0.75rem;
+        }
+
+        .side-rail {
+          position: relative;
+          inset-block-start: auto;
+          max-block-size: none;
+          padding: 0.8rem;
+        }
+
+        .rail-note,
+        .toc-title {
+          display: none;
+        }
+
+        .toc {
+          display: flex;
+          gap: 0.35rem;
+          overflow-x: auto;
+          padding-block: 0.45rem 0.1rem;
+          scrollbar-width: thin;
+        }
+
+        .toc li {
+          flex: 0 0 auto;
+        }
+
+        .toc a {
+          border: 1px solid var(--line);
+          background: var(--surface);
+          white-space: nowrap;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .hero {
+          padding: 1.3rem;
+        }
+
+        .section {
+          padding: 1rem;
+        }
+
+        .line-note {
+          grid-template-columns: 1fr;
+          gap: 0.1rem;
+        }
+
+        pre {
+          font-size: 0.78rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media (forced-colors: active) {
+        .brand-mark,
+        .button:not(.secondary) {
+          border: 1px solid ButtonText;
+        }
+
+        .diagram .node,
+        .diagram .node-green,
+        .diagram .node-orange {
+          fill: Canvas;
+          stroke: CanvasText;
+        }
+
+        .diagram .arrow,
+        .diagram .arrow-muted {
+          stroke: CanvasText;
+        }
+
+        .diagram marker path {
+          fill: CanvasText;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到教程正文</a>
+    <div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div>
+
+    <div class="page-shell">
+      <aside class="side-rail" aria-label="教程目录">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true">π</span>
+          <span>Pi Agent 入门实验室</span>
+        </a>
+        <p class="rail-caption">从看懂代码，到做出自己的 Agent</p>
+
+        <div class="page-links">
+          <a href="index.html">入门篇 · 九节课</a>
+          <a href="cli.html">进阶篇 · CLI 与扩展</a>
+          <a href="advanced.html">高级篇 · 模式与内部</a>
+          <a href="sdk.html" aria-current="page">SDK 深入 · 扩展/Skill/MCP</a>
+          <a href="web.html">实战篇 · 多用户 Web</a>
+          <a href="production.html">生产篇 · 上线交付</a>
+          <a href="career.html">求职篇 · 面试与作品集</a>
+        </div>
+
+        <p class="toc-title">学习路线</p>
+        <nav aria-label="章节导航">
+          <ol class="toc">
+            <li><a href="#sdk-boundary">01 · SDK 与 CLI 的边界</a></li>
+            <li><a href="#sdk-ext">02 · 扩展的三种接法</a></li>
+            <li><a href="#sdk-skill">03 · Skill 的发现与注入</a></li>
+            <li><a href="#sdk-mcp">04 · MCP 接入</a></li>
+            <li><a href="#sdk-lifecycle">05 · 生命周期总纲</a></li>
+            <li><a href="web.html">实战篇 · 多用户 Web →</a></li>
+            <li><a href="production.html">生产篇 · 上线交付 →</a></li>
+            <li><a href="cli.html">进阶篇 · CLI 与扩展 →</a></li>
+            <li><a href="index.html">回入门篇 →</a></li>
+          </ol>
+        </nav>
+
+        <div class="rail-note">
+          本教程按 <strong>pi-coding-agent 1.6.1</strong> 编写。网页可离线阅读；调用模型需要你自己的 API Key。
+        </div>
+      </aside>
+
+        <main id="main-content" tabindex="-1">
+
+<header class="hero" id="top">
+          <span class="eyebrow">SDK 深入篇 · 扩展、技能、MCP 与生命周期</span>
+          <h1>把 Pi 嵌进你自己的程序</h1>
+          <p class="hero-lede">
+            SDK 里能用扩展吗？怎么接 Skill 和 MCP？Pi 的生命周期到底分几层？这一册回答这三件事：
+            先分清 SDK 与 CLI 的默认边界，再学会扩展的三种接法与生效时机，最后把整条生命周期串成一张总图。
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#sdk-boundary">从边界开始</a>
+            <a class="button secondary" href="index.html">回入门篇</a>
+          </div>
+          <div class="hero-facts" aria-label="教程信息">
+            <span>基线版本：Pi Agent 1.6.1</span>
+            <span>前置：入门篇 + 进阶篇 B</span>
+          </div>
+        </header>
+        <section class="section" id="sdk-boundary" aria-labelledby="sdk-boundary-title">
+          <p class="chapter-kicker">SDK 深入篇 01 · 先分清边界</p>
+          <h2 id="sdk-boundary-title">SDK 会话默认加载什么，不加载什么</h2>
+          <p class="lede">
+            SDK 不是“缩水版 CLI”，CLI 也不是另一个产品——两者跑的是同一个引擎。区别在于：CLI 替你把所有线接好了，
+            SDK 把接线权交给你。这张对照表决定你“少配了什么”时去哪找答案。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <caption>CLI 启动与 SDK createAgentSession() 的默认行为对照</caption>
+              <thead><tr><th scope="col">资源</th><th scope="col">CLI（pi 命令）</th><th scope="col">SDK（createAgentSession）</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">扩展文件发现</th><td>自动（~/.pi/agent/extensions、.pi/extensions）</td><td>相同（DefaultResourceLoader.reload()）</td></tr>
+                <tr><th scope="row">内置扩展（codemode / tool_search / MCP）</th><td>自动加载</td><td><strong>不加载</strong>，要手动加进 extensionFactories</td></tr>
+                <tr><th scope="row">MCP 服务器连接</th><td>启动即连</td><td>加 createMcpExtension() 后，还要调 session.bindExtensions()</td></tr>
+                <tr><th scope="row">技能（skills）</th><td>自动发现</td><td>相同（~/.pi/agent/skills、.pi/skills）</td></tr>
+                <tr><th scope="row">提示词模板 / 主题 / 上下文文件</th><td>自动发现</td><td>相同</td></tr>
+                <tr><th scope="row">设置（settings.json）</th><td>自动读取</td><td>相同；可用 SettingsManager.applyOverrides() 覆盖</td></tr>
+                <tr><th scope="row">会话持久化</th><td>默认落盘</td><td>默认落盘；SessionManager.inMemory() 关闭</td></tr>
+                <tr><th scope="row">系统提示词组装</th><td>SYSTEM.md / APPEND_SYSTEM.md / AGENTS.md / 技能</td><td>完全相同</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout caution">
+            <strong>最容易踩的坑：</strong>
+            “CLI 里能用，SDK 里不见了”的三大件——codemode、tool_search、MCP——都是 CLI 的内置扩展。
+            SDK 会话不会加载它们，需要你显式安装（见本篇 04 节）。
+          </div>
+
+          <details class="exercise">
+            <summary>练习 01 · 盘点你的会话加载了什么</summary>
+            <div class="exercise-body">
+              <p>在任意一个教程示例里，<code>loader.reload()</code> 之后加两行：</p>
+              <p><code>console.log(loader.getExtensions().extensions.length, "个扩展")</code><br>
+                 <code>console.log(loader.getSkills().skills.map((s) =&gt; s.name))</code></p>
+              <p><strong>检查点：</strong>对照表格，说得出每一项“是 SDK 默认给的，还是你自己接的线”。</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="sdk-ext" aria-labelledby="sdk-ext-title">
+          <p class="chapter-kicker">SDK 深入篇 02 · 扩展</p>
+          <h2 id="sdk-ext-title">扩展在 SDK 里的三种接法与生效时机</h2>
+          <p class="lede">
+            能。CLI 里的扩展机制在 SDK 里原样可用，而且多了一种“进程内内联”的接法。三种接法可以混用：
+            文件自动发现、显式路径、内联工厂。
+          </p>
+
+          <h3>2.1 三种接法</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>扩展接入 SDK 的三种方式</caption>
+              <thead><tr><th scope="col">接法</th><th scope="col">写法</th><th scope="col">适合</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">① 内联工厂</th><td><code>extensionFactories: [(pi) =&gt; { ... }]</code></td><td>宿主自己的逻辑；随应用分发，不落文件</td></tr>
+                <tr><th scope="row">② 文件自动发现</th><td>放到 <code>~/.pi/agent/extensions/</code> 或 <code>.pi/extensions/</code>（信任后）</td><td>本地通用增强；与 CLI 共享</td></tr>
+                <tr><th scope="row">③ 显式路径</th><td><code>additionalExtensionPaths: ["./my-ext.ts"]</code></td><td>随仓库走的专用扩展；jiti 直接加载 TS，无需编译</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="code-card">
+            <div class="code-head"><span>三种接法并存（官方 06-extensions.ts 的模式）</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="SDK 扩展三种接法示例" tabindex="0"><code>const loader = new DefaultResourceLoader({
+  cwd: process.cwd(),
+  agentDir: getAgentDir(),
+  additionalExtensionPaths: ["./my-logging-extension.ts"],   // ③ 显式路径
+  extensionFactories: [
+    (pi) =&gt; {                                                  // ① 内联工厂
+      pi.on("agent_start", () =&gt; console.log("[inline] 运行开始"));
+    },
+  ],
+});
+await loader.reload();   // ② 此时自动发现 ~/.pi/agent/extensions 等位置</code></pre>
+          </div>
+          <p>
+            要把扩展分发给团队或公网，走 <code>settings.json</code> 的 <code>packages</code> 字段
+            （npm / git 来源，<code>pi install</code> 安装）——见 cli.html 进阶篇 B 的扩展位置表。
+          </p>
+
+          <h3>2.2 生效时机：钩子立即生效，session_start 要等 bind</h3>
+          <p>这是源码里确认过、文档里一句带过的重要细节：</p>
+          <div class="table-wrap">
+            <table>
+              <caption>扩展能力在 SDK 里的生效时机</caption>
+              <thead><tr><th scope="col">能力</th><th scope="col">何时生效</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><code>pi.on("tool_call")</code> 等运行期钩子</th><td>createAgentSession() 返回后立即生效——ExtensionRunner 在会话构造函数里就创建了</td></tr>
+                <tr><th scope="row"><code>registerTool()</code> 注册的工具</th><td>同一时机，进入可调用集合</td></tr>
+                <tr><th scope="row"><code>session_start</code> / <code>resources_discover</code> 事件</th><td>要等宿主调用 <code>await session.bindExtensions({})</code></td></tr>
+                <tr><th scope="row">MCP 服务器连接</th><td>bindExtensions() 触发 session_start 后，后台连接</td></tr>
+                <tr><th scope="row"><code>ctx.ui</code> 交互（confirm / select）</th><td>通过 <code>bindExtensions({ uiContext })</code> 注入——SDK 宿主自己决定界面长什么样</td></tr>
+                <tr><th scope="row"><code>session_shutdown</code> 清理</th><td>通过 <code>bindExtensions({ shutdownHandler })</code> 挂载宿主自己的清理逻辑</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout good">
+            <strong>教程主线的验证：</strong>
+            毕业实战的 <code>limitGuard</code> 用 <code>tool_call</code> 钩子，没调 bindExtensions 也生效——
+            因为运行期钩子在会话构造时就挂好了。但如果扩展依赖 <code>session_start</code> 初始化资源
+            （进阶篇 B.8 的规则），SDK 宿主就必须补一句 <code>await session.bindExtensions({})</code>。
+          </div>
+
+          <details class="exercise">
+            <summary>练习 02 · 验证生效时机</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>写一个内联扩展：<code>session_start</code> 打一条日志，<code>tool_call</code> 打另一条。</li>
+                <li>不调 bindExtensions 直接 prompt：只有 tool_call 的日志出现。</li>
+                <li>补上 <code>await session.bindExtensions({})</code> 再跑：两条都出现。</li>
+              </ol>
+              <p><strong>检查点：</strong>说得出为什么 MCP 必须要 bindExtensions，而安全门不用。</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="sdk-skill" aria-labelledby="sdk-skill-title">
+          <p class="chapter-kicker">SDK 深入篇 03 · 技能</p>
+          <h2 id="sdk-skill-title">Skill 在 SDK 里：发现、过滤与注入</h2>
+          <p class="lede">
+            进阶篇 A.7 讲的是“用”技能，这一节讲“SDK 宿主怎么管理”技能。发现机制与 CLI 完全相同；
+            你多拿到的是过滤、内联和诊断能力。
+          </p>
+
+          <h3>3.1 发现：和 CLI 同一条路径</h3>
+          <p>
+            <code>DefaultResourceLoader.reload()</code> 会从 <code>cwd/.pi/skills</code>、<code>~/.pi/agent/skills</code>
+            以及 settings 的 <code>skills</code> 路径发现技能（解析 SKILL.md frontmatter），随系统提示词把
+            <strong>名字 + 描述</strong>交给模型，任务匹配时模型才读取全文——A.7 的渐进加载在 SDK 里一字不差地生效。
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>查看当前会话发现了哪些技能（官方 04-skills.ts 模式）</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="技能发现示例" tabindex="0"><code>const loader = new DefaultResourceLoader({
+  cwd: process.cwd(),
+  agentDir: getAgentDir(),
+});
+await loader.reload();
+
+const { skills, diagnostics } = loader.getSkills();
+console.log("发现的技能：", skills.map((s) =&gt; s.name));
+if (diagnostics.length &gt; 0) console.log("警告：", diagnostics);</code></pre>
+          </div>
+
+          <h3>3.2 过滤与内联：skillsOverride</h3>
+          <p>宿主可以用 <code>skillsOverride</code> 对技能做最终裁决——过滤、改名，或塞入完全内联、不落磁盘的技能：</p>
+          <div class="code-card">
+            <div class="code-head"><span>skillsOverride：过滤 + 内联技能</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="skillsOverride 示例" tabindex="0"><code>import { createSyntheticSourceInfo, type Skill } from "@earendil-works/pi-coding-agent";
+
+const customSkill: Skill = {
+  name: "data-agent-rules",
+  description: "DataAgent 的回答规则。回答销售数据问题时使用。",
+  filePath: "/virtual/SKILL.md",
+  baseDir: "/virtual",
+  sourceInfo: createSyntheticSourceInfo("/virtual/SKILL.md", { source: "sdk" }),
+  disableModelInvocation: false,
+};
+
+const loader = new DefaultResourceLoader({
+  cwd: process.cwd(),
+  agentDir: getAgentDir(),
+  skillsOverride: (current) =&gt; ({
+    // 只保留匹配的技能，再附上内联技能
+    skills: [
+      ...current.skills.filter((s) =&gt; s.name.startsWith("data-")),
+      customSkill,
+    ],
+    diagnostics: current.diagnostics,
+  }),
+});</code></pre>
+          </div>
+          <div class="callout">
+            <strong>什么时候用技能，什么时候用 systemPromptOverride？</strong>
+            每次都必须生效的规则进系统提示词（第 05 课）；只在特定任务类型时才需要的大段说明做成技能。
+            它们共享同一个上下文预算——技能是“按需加载”的那一半（高级篇 G.2 的上下文税）。
+          </div>
+
+          <details class="exercise">
+            <summary>练习 03 · 给 DataAgent 挂一个技能</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>在 <code>~/.pi/agent/skills/sales-faq/SKILL.md</code> 写一个销售 FAQ 技能，description 写清“什么时候用”。</li>
+                <li>用 <code>loader.getSkills()</code> 确认它被发现。</li>
+                <li>问一个 FAQ 覆盖的问题，观察模型是否读取了技能全文。</li>
+              </ol>
+              <p><strong>检查点：</strong>把 description 改得含糊（“帮助处理销售”），路由效果变差了吗？</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="sdk-mcp" aria-labelledby="sdk-mcp-title">
+          <p class="chapter-kicker">SDK 深入篇 04 · MCP</p>
+          <h2 id="sdk-mcp-title">MCP 在 SDK 里：三个工厂 + 一次 bind</h2>
+          <p class="lede">
+            进阶篇 D.4 是 CLI 视角（<code>pi mcp add</code> 命令）。SDK 视角下，MCP 是一个官方提供的扩展工厂：
+            把它加进 extensionFactories，配置仍来自同一份 mcp.json，最后在会话上 bind 一次。
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>src/mcp-session.ts · SDK 接入 MCP（官方 14 号示例的模式）</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="SDK 接入 MCP 完整示例" tabindex="0"><code>import {
+  createAgentSession,
+  createCodemodeExtension,
+  createMcpExtension,
+  createToolSearchExtension,
+  DefaultResourceLoader,
+  getAgentDir,
+  ModelRuntime,
+  SessionManager,
+  SettingsManager,
+} from "@earendil-works/pi-coding-agent";
+
+const cwd = process.cwd();
+
+const resourceLoader = new DefaultResourceLoader({
+  cwd,
+  agentDir: getAgentDir(),
+  extensionFactories: [
+    createCodemodeExtension({ mode: "on" }),   // 可选：codemode 工具
+    createToolSearchExtension(),               // 可选：tool_search 工具
+    createMcpExtension(),                      // 读取 agent 目录与受信任项目的 mcp.json，与 CLI 相同
+  ],
+});
+await resourceLoader.reload();
+
+// codemode / tool_search 注册时是“未激活”状态，用 defaultTools 打开
+const settingsManager = SettingsManager.create(cwd);
+settingsManager.applyOverrides({ defaultTools: ["+codemode", "+tool_search"] });
+
+const modelRuntime = await ModelRuntime.create();
+const model = (await modelRuntime.getAvailable())[0];
+if (!model) throw new Error("没有可用模型：请先配置 Provider 和 API Key");
+
+const { session } = await createAgentSession({
+  model,
+  modelRuntime,
+  resourceLoader,
+  settingsManager,
+  sessionManager: SessionManager.inMemory(),
+});
+
+try {
+  // 发出 session_start：MCP 服务器在后台开始连接
+  await session.bindExtensions({});
+  console.log("活动工具：", session.getActiveToolNames().join(", "));
+
+  session.subscribe((event) =&gt; {
+    if (event.type === "message_update" &amp;&amp; event.assistantMessageEvent.type === "text_delta") {
+      process.stdout.write(event.assistantMessageEvent.delta);
+    }
+  });
+  await session.prompt("用文件系统工具列出当前目录里的 Markdown 文件。");
+  console.log();
+} finally {
+  session.dispose();
+}</code></pre>
+          </div>
+          <ul>
+            <li><strong>工具命名不变：</strong>MCP 工具叫 <code>mcp__&lt;服务器&gt;__&lt;工具&gt;</code>，在 <code>getActiveToolNames()</code> 里一眼可辨。</li>
+            <li><strong>exposure 概念不变：</strong>deferred 暴露的 MCP 工具靠 <code>tool_search</code> 按需加载，codemode 暴露的进 codemode 脚本——SDK 与 CLI 行为一致。</li>
+            <li><strong>项目级 mcp.json：</strong>同样要求项目受信任后才读取（进阶篇 F.2）。</li>
+          </ul>
+          <div class="callout caution">
+            <strong>忘了 bind 的典型症状：</strong>
+            不报错，但 <code>mcp__*</code> 工具一直不出现，而 CLI 里 <code>pi mcp list</code> 一切正常。
+            回到本篇 02 节的生效时机表——MCP 连接挂在 session_start 上。
+          </div>
+
+          <details class="exercise">
+            <summary>练习 04 · 把文件系统 MCP 接进 DataAgent</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>先用 CLI 加配置：<code>pi mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem .</code></li>
+                <li>按本节代码在 SDK 会话里接上 MCP，bindExtensions() 前后各打印一次 <code>getActiveToolNames()</code>。</li>
+                <li>问“当前目录里有什么文件”，观察模型调用 <code>mcp__filesystem__*</code> 工具。</li>
+              </ol>
+              <p><strong>检查点：</strong>去掉 <code>+codemode</code> 后，deferred 的 MCP 工具还能被直接声明吗？（提示：exposure。）</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="sdk-lifecycle" aria-labelledby="sdk-lifecycle-title">
+          <p class="chapter-kicker">SDK 深入篇 05 · 运行机制总纲</p>
+          <h2 id="sdk-lifecycle-title">Pi 的完整生命周期：进程 → 扩展运行时 → 会话 → run</h2>
+          <p class="lede">
+            你猜的方向是对的——Pi 确实有一套贯穿始终的生命周期。它此前分散在进阶篇 B.4（扩展事件）、进阶篇 C（会话树）、
+            高级篇 J（run 内部），这一节把它们串成一张总图，并标出每一层里 CLI 与 SDK 的分野。
+          </p>
+
+          <figure class="diagram">
+            <svg id="lifecycle-diagram" viewBox="0 0 900 400" role="img" aria-labelledby="life-title life-desc">
+              <title id="life-title">Pi 的完整生命周期</title>
+              <desc id="life-desc">进程启动后解析项目信任，创建会话并发出 session_start 与 resources_discover；每次用户输入进入一次 run：input、before_agent_start、agent_start、多轮 turn、agent_end、agent_before_settle、agent_settled；会话替换或退出时发出 session_shutdown。</desc>
+              <defs><marker id="life-arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4e54c8"></path></marker></defs>
+              <rect class="node" x="20" y="40" width="160" height="56" rx="12"></rect>
+              <rect class="node-orange" x="220" y="40" width="160" height="56" rx="12"></rect>
+              <rect class="node" x="420" y="40" width="160" height="56" rx="12"></rect>
+              <rect class="node" x="620" y="40" width="160" height="56" rx="12"></rect>
+              <path class="arrow" d="M180 68 H220"></path>
+              <path class="arrow" d="M380 68 H420"></path>
+              <path class="arrow" d="M580 68 H620"></path>
+              <text x="100" y="63" text-anchor="middle">进程启动</text>
+              <text class="small" x="100" y="82" text-anchor="middle">读 settings / 凭据</text>
+              <text x="300" y="63" text-anchor="middle">project_trust</text>
+              <text class="small" x="300" y="82" text-anchor="middle">项目有 .pi 才触发</text>
+              <text x="500" y="63" text-anchor="middle">session_start</text>
+              <text class="small" x="500" y="82" text-anchor="middle">扩展初始化资源</text>
+              <text x="700" y="63" text-anchor="middle">resources_discover</text>
+              <text class="small" x="700" y="82" text-anchor="middle">扩展补充资源路径</text>
+
+              <rect class="node-green" x="20" y="150" width="130" height="56" rx="12"></rect>
+              <rect class="node-green" x="180" y="150" width="180" height="56" rx="12"></rect>
+              <rect class="node-green" x="390" y="150" width="140" height="56" rx="12"></rect>
+              <rect class="node-green" x="560" y="150" width="110" height="56" rx="12"></rect>
+              <rect class="node" x="700" y="150" width="90" height="56" rx="12"></rect>
+              <path class="arrow" d="M150 178 H180"></path>
+              <path class="arrow" d="M360 178 H390"></path>
+              <path class="arrow" d="M530 178 H560"></path>
+              <path class="arrow" d="M670 178 H700"></path>
+              <text x="85" y="173" text-anchor="middle">input</text>
+              <text class="small" x="85" y="192" text-anchor="middle">改写 / 拦截</text>
+              <text x="270" y="173" text-anchor="middle">before_agent_start</text>
+              <text class="small" x="270" y="192" text-anchor="middle">注入消息 / 改提示词</text>
+              <text x="460" y="173" text-anchor="middle">agent_start</text>
+              <text class="small" x="460" y="192" text-anchor="middle">一次 run 开始</text>
+              <text x="615" y="173" text-anchor="middle">turn 循环</text>
+              <text class="small" x="615" y="192" text-anchor="middle">请求 + 工具</text>
+              <text x="745" y="173" text-anchor="middle">agent_end</text>
+              <text class="small" x="745" y="192" text-anchor="middle">单次运行结束</text>
+
+              <rect class="node-green" x="180" y="252" width="210" height="56" rx="12"></rect>
+              <rect class="node-green" x="430" y="252" width="190" height="56" rx="12"></rect>
+              <path class="arrow" d="M745 206 V280 H620"></path>
+              <path class="arrow" d="M180 280 H95 V206"></path>
+              <text x="285" y="275" text-anchor="middle">agent_before_settle</text>
+              <text class="small" x="285" y="294" text-anchor="middle">最后可追加 / 请求续跑</text>
+              <text x="525" y="275" text-anchor="middle">agent_settled</text>
+              <text class="small" x="525" y="294" text-anchor="middle">真正空闲（通知）</text>
+
+              <rect class="node-orange" x="660" y="252" width="190" height="56" rx="12"></rect>
+              <path class="arrow" d="M620 280 H660"></path>
+              <text x="755" y="275" text-anchor="middle">session_shutdown</text>
+              <text class="small" x="755" y="294" text-anchor="middle">/new · /resume · 退出</text>
+              <text class="small" x="450" y="352" text-anchor="middle">重试 / 压缩 / 排队消息会从 agent_end 回到 agent_start（进阶篇 B.4 与高级篇 J.6）</text>
+              <text class="small" x="450" y="380" text-anchor="middle">CLI 自动走完这条链；SDK 宿主自己决定在哪一层介入</text>
+            </svg>
+            <figcaption>Pi 生命周期总图：第一行是进程与会话级，第二、三行是一次 run（每次任务一轮），右下是会话替换。</figcaption>
+          </figure>
+
+          <h3>5.1 四层结构，各管一段</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>进程、扩展运行时、会话、run 的职责与生命周期事件</caption>
+              <thead><tr><th scope="col">层</th><th scope="col">活多久</th><th scope="col">关键事件 / API</th><th scope="col">CLI vs SDK</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">进程</th><td>整次运行</th><td>settings、凭据、模型目录加载</td><td>CLI 自动；SDK 在 createAgentSession 前后由你控制</td></tr>
+                <tr><th scope="row">扩展运行时</th><td>随会话创建，reload 时重建</th><td>工厂函数 → 钩子注册；<code>bindExtensions()</code></td><td>CLI 自动 bind；SDK 要显式调用才有 session_start</td></tr>
+                <tr><th scope="row">会话</th><td>session_start → session_shutdown</th><td><code>session_start</code>（reason: startup/new/resume/fork/reload）、<code>resources_discover</code>、<code>session_shutdown</code></td><td>CLI 由 /new、/resume 驱动；SDK 用 AgentSessionRuntime 切换</td></tr>
+                <tr><th scope="row">run</th><td>一次用户任务</th><td>input → before_agent_start → agent_start → turn* → agent_end → before_settle → settled</td><td>两边完全一致（高级篇 J 逐行走过的就是这一层）</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>5.2 会话替换：shutdown 不是进程退出</h3>
+          <p>
+            <code>/new</code>、<code>/resume</code>、<code>/reload</code> 走同一条路：
+            <code>session_shutdown</code>（带 reason）→ 扩展清理资源 → 重建扩展运行时 → 新的 <code>session_start</code>。
+            所以进阶篇 B.8 的规则在 SDK 里同样成立：后台资源在 <code>session_start</code> 启动、在
+            <code>session_shutdown</code> 关闭；SDK 宿主可以在 <code>bindExtensions({ shutdownHandler })</code>
+            里挂自己的清理逻辑。
+          </p>
+
+          <h3>5.3 把整张图变成你的架构</h3>
+          <div class="card-grid">
+            <article class="card"><h4>进程层</h4><p>凭据注入（高级篇 I.3）、日志、限流——这是你的 Web 服务（实战篇）。</p></article>
+            <article class="card"><h4>扩展运行时层</h4><p>能力边界：工具、命令、门控、审计——大多在工厂函数里完成。</p></article>
+            <article class="card"><h4>会话层</h4><p>隔离与记忆：每用户一份（第 08、09 课与实战篇），树与压缩在进阶篇 C。</p></article>
+            <article class="card"><h4>run 层</h4><p>单次任务的质量与成本：提示词、工具设计、thinking level、观测（高级篇 H）。</p></article>
+          </div>
+
+          <details class="exercise">
+            <summary>练习 05 · 画出你自己的介入点</summary>
+            <div class="exercise-body">
+              <p>拿你的 DataAgent 项目回答：进程层你写了什么？扩展层注册了哪些钩子？会话层怎么隔离？run 层观测什么？</p>
+              <p><strong>检查点：</strong>任何一个“Pi 行为不符合预期”的问题，你都应该能先定位到这四层中的一层，再去找对应的事件或源码。</p>
+            </div>
+          </details>
+        </section>
+
+        <footer class="footer">
+          <p>学 Pi Agent 的目标不是背 API，而是知道每一层负责什么、出问题该去哪一层找。</p>
+          <p><a href="#top">回到页面顶部 ↑</a></p>
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      const progressBar = document.querySelector("#progress-bar");
+      const tocLinks = [...document.querySelectorAll(".toc a")];
+      const sections = tocLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      function updateReadingProgress() {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+        progressBar.style.inlineSize = `${Math.min(100, Math.max(0, progress))}%`;
+      }
+
+      window.addEventListener("scroll", updateReadingProgress, { passive: true });
+      window.addEventListener("resize", updateReadingProgress);
+      updateReadingProgress();
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            for (const link of tocLinks) {
+              if (link.getAttribute("href") === `#${visible.target.id}`) {
+                link.setAttribute("aria-current", "location");
+              } else {
+                link.removeAttribute("aria-current");
+              }
+            }
+          },
+          { rootMargin: "-12% 0px -72% 0px", threshold: [0, 0.25, 0.5] },
+        );
+        for (const section of sections) observer.observe(section);
+      }
+
+      for (const button of document.querySelectorAll(".copy-button")) {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-card")?.querySelector("pre code")?.textContent;
+          if (!code) return;
+          try {
+            await navigator.clipboard.writeText(code);
+            button.textContent = "已复制";
+            window.setTimeout(() => {
+              button.textContent = "复制";
+            }, 1400);
+          } catch {
+            button.textContent = "请手动选择代码";
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

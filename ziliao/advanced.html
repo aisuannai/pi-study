@@ -1,0 +1,1752 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="用 Pi 学 Agent 通用知识：设计模式与上下文工程、可观测性与评测、企业级架构、源码深潜与流式内部机制。">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    >
+    <title>高级篇 · Pi Agent 设计模式、观测评测与源码深潜</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f6f7fb;
+        --surface: #fff;
+        --surface-2: #f0f3fa;
+        --ink: #20263a;
+        --muted: #58627a;
+        --line: #dce2ef;
+        --brand: #4e54c8;
+        --brand-dark: #353b9f;
+        --brand-wash: #eceeff;
+        --green: #176b4b;
+        --green-wash: #e8f6ef;
+        --orange: #814900;
+        --orange-wash: #fff4df;
+        --red: #a3293d;
+        --red-wash: #fff0f2;
+        --focus-ring: #875600;
+        --code: #171b2b;
+        --code-ink: #e9edff;
+        --shadow: 0 16px 42px rgb(38 48 89 / 8%);
+        --radius: 18px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        scroll-behavior: smooth;
+        scroll-padding-top: 1.5rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #111522;
+          --surface: #1a2030;
+          --surface-2: #222a3d;
+          --ink: #eef1ff;
+          --muted: #b3bdd4;
+          --line: #343e56;
+          --brand: #a5a9ff;
+          --brand-dark: #d2d4ff;
+          --brand-wash: #292e4e;
+          --green: #80d6ad;
+          --green-wash: #18382e;
+          --orange: #ffd27f;
+          --orange-wash: #3a2e1c;
+          --red: #ff9aa8;
+          --red-wash: #3b2029;
+          --focus-ring: #ffd27f;
+          --code: #10131d;
+          --code-ink: #edf0ff;
+          --shadow: 0 16px 42px rgb(0 0 0 / 24%);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-inline-size: 320px;
+        background: var(--page);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse at 84% 0%, rgb(103 111 224 / 10%), transparent 36rem),
+          var(--page);
+        font-size: 1rem;
+        line-height: 1.72;
+      }
+
+      a {
+        color: var(--brand-dark);
+        text-underline-offset: 0.2em;
+        text-decoration-thickness: 1px;
+      }
+
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+
+      :where(a, button, input, summary):focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 20;
+        inset-block-start: 0.75rem;
+        inset-inline-start: 0.75rem;
+        padding: 0.65rem 1rem;
+        transform: translateY(-160%);
+        border-radius: 0.5rem;
+        color: #fff;
+        background: #20263a;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .reading-progress {
+        position: fixed;
+        z-index: 15;
+        inset: 0 0 auto;
+        block-size: 4px;
+        background: transparent;
+      }
+
+      .reading-progress span {
+        display: block;
+        inline-size: 0;
+        block-size: 100%;
+        background: linear-gradient(90deg, #686ee6, #17a87b);
+      }
+
+      .page-shell {
+        display: grid;
+        grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+        gap: clamp(1.25rem, 3vw, 3rem);
+        inline-size: min(1440px, 100%);
+        margin-inline: auto;
+        padding: clamp(1rem, 3vw, 2.75rem);
+      }
+
+      .side-rail {
+        position: sticky;
+        inset-block-start: 1.5rem;
+        align-self: start;
+        max-block-size: calc(100dvh - 3rem);
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-block-end: 0.5rem;
+        color: var(--ink);
+        font-size: 1.03rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        inline-size: 2.3rem;
+        aspect-ratio: 1;
+        place-items: center;
+        border-radius: 0.75rem;
+        color: #fff;
+        background: linear-gradient(135deg, #686ee6, #2c9d83);
+        font-weight: 900;
+      }
+
+      .rail-caption {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .toc-title {
+        margin: 1rem 0 0.4rem;
+        color: var(--muted);
+        font-size: 0.73rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .toc {
+        display: grid;
+        gap: 0.2rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .toc a {
+        display: block;
+        padding: 0.48rem 0.65rem;
+        border-radius: 0.6rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        text-decoration: none;
+      }
+
+      .toc a:hover,
+      .toc a[aria-current="location"] {
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+      }
+
+      .rail-note {
+        margin-block-start: 1.25rem;
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        color: var(--muted);
+        font-size: 0.79rem;
+      }
+
+      .page-links {
+        display: grid;
+        gap: 0.25rem;
+        margin-block: 0.75rem 1rem;
+      }
+
+      .page-links a {
+        display: block;
+        padding: 0.42rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .page-links a:hover,
+      .page-links a[aria-current="page"] {
+        border-color: var(--brand);
+        background: var(--brand-wash);
+      }
+
+      main {
+        min-inline-size: 0;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(1.5rem, 5vw, 4rem);
+        border: 1px solid var(--line);
+        border-radius: calc(var(--radius) + 4px);
+        background:
+          radial-gradient(circle at 86% 20%, rgb(93 102 219 / 18%), transparent 16rem),
+          var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 0.7rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--ink);
+        line-height: 1.25;
+        text-wrap: balance;
+      }
+
+      h1 {
+        max-inline-size: 17ch;
+        margin: 1.1rem 0 0.85rem;
+        font-size: clamp(2.15rem, 5vw, 4.3rem);
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin-block: 0 1rem;
+        font-size: clamp(1.55rem, 3vw, 2.2rem);
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin-block: 1.8rem 0.65rem;
+        font-size: 1.24rem;
+      }
+
+      h4 {
+        margin-block: 1.25rem 0.45rem;
+        font-size: 1.05rem;
+      }
+
+      p {
+        margin-block: 0.65rem 1rem;
+      }
+
+      .hero-lede {
+        max-inline-size: 66ch;
+        color: var(--muted);
+        font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-block-start: 1.4rem;
+      }
+
+      .button {
+        display: inline-flex;
+        min-block-size: 2.75rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 1rem;
+        border: 1px solid var(--brand);
+        border-radius: 0.7rem;
+        color: #fff;
+        background: #4e54c8;
+        font: inherit;
+        font-weight: 750;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .button.secondary {
+        color: var(--brand-dark);
+        background: var(--surface);
+      }
+
+      .hero-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.2rem;
+        margin-block-start: 1.5rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .section {
+        margin-block-start: 1.5rem;
+        padding: clamp(1.2rem, 3vw, 2.35rem);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        scroll-margin-block-start: 1rem;
+      }
+
+      .chapter-kicker {
+        margin-block-end: 0.4rem;
+        color: var(--brand-dark);
+        font-size: 0.78rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .lede {
+        max-inline-size: 75ch;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .callout {
+        margin-block: 1rem;
+        padding: 1rem 1.1rem;
+        border-inline-start: 4px solid var(--brand);
+        border-radius: 0 0.7rem 0.7rem 0;
+        background: var(--brand-wash);
+      }
+
+      .callout p:last-child {
+        margin-block-end: 0;
+      }
+
+      .callout.good {
+        border-color: var(--green);
+        background: var(--green-wash);
+      }
+
+      .callout.caution {
+        border-color: #d58a17;
+        background: var(--orange-wash);
+      }
+
+      .callout.danger {
+        border-color: var(--red);
+        background: var(--red-wash);
+      }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 0.85rem;
+        margin-block: 1rem;
+      }
+
+      .card {
+        min-inline-size: 0;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        background: var(--surface);
+      }
+
+      .card h3,
+      .card h4 {
+        margin-block-start: 0;
+      }
+
+      .card p:last-child {
+        margin-block-end: 0;
+      }
+
+      .step-number {
+        display: inline-grid;
+        inline-size: 1.8rem;
+        aspect-ratio: 1;
+        place-items: center;
+        margin-inline-end: 0.35rem;
+        border-radius: 50%;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.86rem;
+        font-weight: 850;
+      }
+
+      figure {
+        margin: 1.25rem 0;
+      }
+
+      figcaption {
+        margin-block-start: 0.55rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .diagram {
+        overflow-x: auto;
+        padding: 1.15rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background:
+          linear-gradient(135deg, var(--surface-2), var(--surface));
+      }
+
+      .diagram svg {
+        display: block;
+        inline-size: 100%;
+        min-inline-size: 640px;
+        block-size: auto;
+      }
+
+      .diagram text {
+        fill: var(--ink);
+        font-family: inherit;
+        font-size: 15px;
+      }
+
+      .diagram .small {
+        fill: var(--muted);
+        font-size: 12px;
+      }
+
+      .diagram .node {
+        fill: var(--surface);
+        stroke: var(--brand);
+        stroke-width: 2;
+      }
+
+      .diagram .node-green {
+        fill: var(--green-wash);
+        stroke: var(--green);
+        stroke-width: 2;
+      }
+
+      .diagram .node-orange {
+        fill: var(--orange-wash);
+        stroke: #bd7810;
+        stroke-width: 2;
+      }
+
+      .diagram .arrow {
+        fill: none;
+        stroke: var(--brand);
+        stroke-width: 2.5;
+      }
+
+      .diagram .arrow-muted {
+        fill: none;
+        stroke: #7a849d;
+        stroke-width: 2;
+      }
+
+      .diagram marker path {
+        fill: var(--brand);
+      }
+
+      .diagram marker#muted-arrowhead path,
+      .diagram marker#event-muted-arrowhead path {
+        fill: #7a849d;
+      }
+
+      #learning-map-diagram .arrow {
+        marker-end: url("#learning-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow {
+        marker-end: url("#loop-arrowhead");
+      }
+
+      #prompt-diagram .arrow {
+        marker-end: url("#prompt-arrowhead");
+      }
+
+      #tool-diagram .arrow {
+        marker-end: url("#tool-arrowhead");
+      }
+
+      #event-diagram .arrow {
+        marker-end: url("#event-arrowhead");
+      }
+
+      #session-diagram .arrow {
+        marker-end: url("#session-arrowhead");
+      }
+
+      #web-diagram .arrow {
+        marker-end: url("#web-arrowhead");
+      }
+
+      #arch-diagram .arrow {
+        marker-end: url("#arch-arrowhead");
+      }
+
+      #lifecycle-diagram .arrow {
+        marker-end: url("#life-arrowhead");
+      }
+
+      #agent-loop-diagram .arrow-muted {
+        marker-end: url("#muted-arrowhead");
+      }
+
+      #event-diagram .arrow-muted {
+        marker-end: url("#event-muted-arrowhead");
+      }
+
+      .diagram-description {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .code-card {
+        margin-block: 1rem;
+        overflow: hidden;
+        border: 1px solid #30384e;
+        border-radius: 0.9rem;
+        background: var(--code);
+        color: var(--code-ink);
+      }
+
+      .code-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.55rem 0.8rem;
+        border-block-end: 1px solid #343c52;
+        color: #bfc8e3;
+        font-size: 0.76rem;
+      }
+
+      .copy-button {
+        min-block-size: 2rem;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid #68718a;
+        border-radius: 0.45rem;
+        color: #f5f6ff;
+        background: #242a3b;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      pre {
+        max-inline-size: 100%;
+        margin: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 1rem;
+        color: var(--code-ink);
+        font: 0.86rem/1.62 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        tab-size: 2;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 0.91em;
+      }
+
+      p code,
+      li code,
+      td code {
+        overflow-wrap: anywhere;
+        padding: 0.12em 0.34em;
+        border: 1px solid var(--line);
+        border-radius: 0.33rem;
+        color: var(--brand-dark);
+        background: var(--surface-2);
+      }
+
+      .code-card pre code {
+        padding: 0;
+        border: 0;
+        color: inherit;
+        background: transparent;
+        font-size: inherit;
+      }
+
+      .line-note {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.28fr) minmax(0, 1fr);
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border-block-start: 1px solid #343c52;
+        color: #c4cbe0;
+        font-size: 0.82rem;
+      }
+
+      .line-note strong {
+        color: #aeb4ff;
+      }
+
+      .table-wrap {
+        max-inline-size: 100%;
+        margin-block: 1rem;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.8rem;
+      }
+
+      table {
+        inline-size: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+
+      caption {
+        padding: 0.75rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: start;
+      }
+
+      th,
+      td {
+        min-inline-size: 8rem;
+        padding: 0.7rem 0.8rem;
+        border-block-start: 1px solid var(--line);
+        text-align: start;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--ink);
+        background: var(--surface-2);
+      }
+
+      td {
+        color: var(--muted);
+      }
+
+      .exercise {
+        margin-block: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        background: var(--surface);
+      }
+
+      .exercise > summary {
+        padding: 0.85rem 1rem;
+        color: var(--brand-dark);
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .exercise-body {
+        padding: 0 1rem 1rem;
+      }
+
+      .exercise-body > :last-child {
+        margin-block-end: 0;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-block: 1rem;
+      }
+
+      .tag {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface-2);
+        font-size: 0.78rem;
+      }
+
+      .source-list {
+        display: grid;
+        gap: 0.45rem;
+        padding-inline-start: 1.25rem;
+      }
+
+      .source-list li {
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-block: 1.5rem 3rem;
+        padding: 1.2rem;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 900px) {
+        .page-shell {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 1rem;
+          padding: 0.75rem;
+        }
+
+        .side-rail {
+          position: relative;
+          inset-block-start: auto;
+          max-block-size: none;
+          padding: 0.8rem;
+        }
+
+        .rail-note,
+        .toc-title {
+          display: none;
+        }
+
+        .toc {
+          display: flex;
+          gap: 0.35rem;
+          overflow-x: auto;
+          padding-block: 0.45rem 0.1rem;
+          scrollbar-width: thin;
+        }
+
+        .toc li {
+          flex: 0 0 auto;
+        }
+
+        .toc a {
+          border: 1px solid var(--line);
+          background: var(--surface);
+          white-space: nowrap;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .hero {
+          padding: 1.3rem;
+        }
+
+        .section {
+          padding: 1rem;
+        }
+
+        .line-note {
+          grid-template-columns: 1fr;
+          gap: 0.1rem;
+        }
+
+        pre {
+          font-size: 0.78rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media (forced-colors: active) {
+        .brand-mark,
+        .button:not(.secondary) {
+          border: 1px solid ButtonText;
+        }
+
+        .diagram .node,
+        .diagram .node-green,
+        .diagram .node-orange {
+          fill: Canvas;
+          stroke: CanvasText;
+        }
+
+        .diagram .arrow,
+        .diagram .arrow-muted {
+          stroke: CanvasText;
+        }
+
+        .diagram marker path {
+          fill: CanvasText;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到教程正文</a>
+    <div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div>
+
+    <div class="page-shell">
+      <aside class="side-rail" aria-label="教程目录">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true">π</span>
+          <span>Pi Agent 入门实验室</span>
+        </a>
+        <p class="rail-caption">从看懂代码，到做出自己的 Agent</p>
+
+        <div class="page-links">
+          <a href="index.html">入门篇 · 九节课</a>
+          <a href="cli.html">进阶篇 · CLI 与扩展</a>
+          <a href="advanced.html" aria-current="page">高级篇 · 模式与内部</a>
+          <a href="sdk.html">SDK 深入 · 扩展/Skill/MCP</a>
+          <a href="web.html">实战篇 · 多用户 Web</a>
+          <a href="production.html">生产篇 · 上线交付</a>
+          <a href="career.html">求职篇 · 面试与作品集</a>
+        </div>
+
+        <p class="toc-title">学习路线</p>
+        <nav aria-label="章节导航">
+          <ol class="toc">
+            <li><a href="#adv-patterns">G · Agent 设计模式</a></li>
+            <li><a href="#adv-observability">H · 观测与评测</a></li>
+            <li><a href="#adv-enterprise">I · 企业级架构</a></li>
+            <li><a href="#adv-internals-loop">J · 源码深潜</a></li>
+            <li><a href="#adv-streaming">K · 流式与请求内部</a></li>
+            <li><a href="sdk.html">SDK 深入 · 扩展/Skill/MCP →</a></li>
+            <li><a href="web.html">实战篇 · 多用户 Web →</a></li>
+            <li><a href="production.html">生产篇 · 上线交付 →</a></li>
+            <li><a href="index.html">回入门篇 →</a></li>
+          </ol>
+        </nav>
+
+        <div class="rail-note">
+          本教程按 <strong>pi-coding-agent 1.6.1</strong> 编写。网页可离线阅读；调用模型需要你自己的 API Key。
+        </div>
+      </aside>
+
+        <main id="main-content" tabindex="-1">
+
+<header class="hero" id="top">
+          <span class="eyebrow">高级篇 · 通用知识、度量与内部机制</span>
+          <h1>设计模式、观测与源码深潜</h1>
+          <p class="hero-lede">
+            这一册把 Pi 当成一本能运行的 Agent 教科书：G 章重组通用概念，H 章建观测与评测，
+            I 章给企业级架构，J/K 两章沿真实源码走完从 prompt() 到流事件的每一步。
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#adv-patterns">从高级 G 开始</a>
+            <a class="button secondary" href="index.html">回入门篇</a>
+          </div>
+          <div class="hero-facts" aria-label="教程信息">
+            <span>基线版本：Pi Agent 1.6.1</span>
+            <span>前置：入门篇 + 进阶篇</span>
+          </div>
+        </header>
+        <section class="section" id="adv-patterns" aria-labelledby="adv-patterns-title">
+          <p class="chapter-kicker">高级篇 G · 跳出 SDK 学 Agent</p>
+          <h2 id="adv-patterns-title">Agent 的通用知识，都能在 Pi 里找到对应物</h2>
+          <p class="lede">
+            前面的课程按“功能”组织，这一章按“概念”重组。把 Pi 当成一本能运行的 Agent 教科书：
+            你以后换任何框架，或者自己从零写循环，这张地图都跟着你。
+          </p>
+
+          <h3>G.1 通用概念对照表</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>通用 Agent 概念在 Pi 中的落点</caption>
+              <thead><tr><th scope="col">通用概念</th><th scope="col">Pi 里的对应物</th><th scope="col">本教程位置</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Agent Loop / ReAct</th><td>run 与 turn：模型请求 → 工具调用 → 结果回填 → 再请求</td><td>第 03 课</td></tr>
+                <tr><th scope="row">函数调用（工具）</th><td><code>defineTool</code> + TypeBox schema + <code>execute</code></td><td>第 06 课</td></tr>
+                <tr><th scope="row">护栏与审批</th><td><code>tool_call</code> 门控、<code>block</code>、安全判断做不出来就拒绝</td><td>第 07 课、进阶 B</td></tr>
+                <tr><th scope="row">上下文工程</th><td>系统提示词分层、工具声明、AGENTS.md、压缩</td><td>第 05 课、进阶 C/E</td></tr>
+                <tr><th scope="row">记忆</th><td>上下文（短期）／会话文件与分支（中期）／AGENTS.md 与自定义条目（长期）</td><td>第 08 课、进阶 C</td></tr>
+                <tr><th scope="row">人机协同</th><td><code>steer</code> / <code>followUp</code> / <code>abort</code>、<code>ctx.ui.confirm</code></td><td>第 09 课</td></tr>
+                <tr><th scope="row">自主度控制</th><td>thinking level、<code>turn_end</code> / <code>agent_before_settle</code> 检查点</td><td>本课 G.4</td></tr>
+                <tr><th scope="row">多 Agent 委派</th><td>codemode 并行、扩展里直调小模型、另起 session 做子 Agent</td><td>本课 G.5</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>G.2 上下文工程：Agent 最重要的通用技能</h3>
+          <p>上下文窗口是稀缺资源，每次请求都是一次“租期分配”。发给模型的内容大致分五块，先学会按块管理：</p>
+          <figure class="diagram">
+            <svg id="context-budget-diagram" viewBox="0 0 900 190" role="img" aria-labelledby="budget-title budget-desc">
+              <title id="budget-title">一次模型请求的上下文预算</title>
+              <desc id="budget-desc">上下文由系统提示词、工具声明、历史消息、工具结果和输出预留组成；输出预留对应压缩设置里的 reserveTokens。</desc>
+              <rect class="node" x="20" y="60" width="180" height="60" rx="12"></rect>
+              <rect class="node" x="210" y="60" width="150" height="60" rx="12"></rect>
+              <rect class="node" x="370" y="60" width="160" height="60" rx="12"></rect>
+              <rect class="node-orange" x="540" y="60" width="170" height="60" rx="12"></rect>
+              <rect class="node-green" x="720" y="60" width="160" height="60" rx="12"></rect>
+              <text x="110" y="85" text-anchor="middle">系统提示词</text>
+              <text class="small" x="110" y="106" text-anchor="middle">保持稳定，利于缓存</text>
+              <text x="285" y="85" text-anchor="middle">工具声明</text>
+              <text class="small" x="285" y="106" text-anchor="middle">少而正交</text>
+              <text x="450" y="85" text-anchor="middle">历史消息</text>
+              <text class="small" x="450" y="106" text-anchor="middle">会被压缩</text>
+              <text x="625" y="85" text-anchor="middle">工具结果</text>
+              <text class="small" x="625" y="106" text-anchor="middle">截断，设上限</text>
+              <text x="800" y="85" text-anchor="middle">输出预留</text>
+              <text class="small" x="800" y="106" text-anchor="middle">reserveTokens</text>
+              <text class="small" x="450" y="165" text-anchor="middle">每一块都该问一句：它必须出现在每一次请求里吗？</text>
+            </svg>
+            <figcaption>上下文预算：压缩（进阶 C）腾出的是“历史”那一块，其余四块由你的提示词与工具设计决定。</figcaption>
+          </figure>
+          <ul>
+            <li><strong>工具结果往往是大头。</strong>内置的 bash/read 都有截断上限；你自己的工具也要给 <code>maxRows</code> 这类参数设服务端上限（第 06 课练习）。</li>
+            <li><strong>上下文会腐烂。</strong>压缩是有损摘要，重要约束写进 <code>AGENTS.md</code>，它每次都完整加载（<a href="cli.html#adv-session">进阶 C 的提醒</a>）。</li>
+            <li><strong>前缀稳定才省钱。</strong>每请求变化的内容（用户名、时间）不要放进系统提示词（第 05 课的图）；Pi 的 <code>cache_warming_decision</code> 事件展示了它如何权衡“预热缓存”的成本与收益。</li>
+            <li><strong>定期 review 上下文。</strong>在 <code>context</code> 事件里打印完整消息列表，看看模型到底看见了什么——把它当成发给模型的生产请求体来审查。</li>
+          </ul>
+
+          <h3>G.3 记忆的三种形态</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>按检索频率决定记忆放哪一层</caption>
+              <thead><tr><th scope="col">形态</th><th scope="col">载体</th><th scope="col">适合放什么</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">短期</th><td>当前上下文（会被压缩）</td><td>本任务的中间结论、刚查到的数据</td></tr>
+                <tr><th scope="row">中期</th><td>会话文件与分支（<code>/tree</code>、<code>/fork</code>、分支摘要）</td><td>这个项目或主题的历史尝试与结论</td></tr>
+                <tr><th scope="row">长期</th><td><code>AGENTS.md</code>、<code>pi.appendEntry()</code> 的结构化条目、扩展自己的数据库</td><td>每次都要的规则；跨会话的用户偏好与事实</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout caution">
+            <strong>反模式：</strong>
+            把“记忆”写成一句系统提示词（“请记住用户的所有偏好”），或者把全部历史塞回上下文。
+            记忆是存储与检索问题，不是提示词问题；Pi 的会话树和自定义条目给了你结构化的落点。
+          </div>
+
+          <h3>G.4 自主度：给循环多大权限</h3>
+          <ul>
+            <li><strong>思考预算：</strong>thinking level（off 到 max）同时影响质量、延迟与费用；SDK 里是 <code>createAgentSession({ thinkingLevel })</code>。</li>
+            <li><strong>检查点：</strong><code>turn_end</code> 与 <code>agent_before_settle</code> 可以追加条目、请求继续一轮——这是实现“完成后自检”“强制复查 diff”这类模式的位置（<a href="cli.html#adv-ext">进阶 B.4</a>）。</li>
+            <li><strong>能不用循环就不用：</strong>确定性流程用普通代码编排，只在真正的分支点交给模型判断。每一个额外的 turn 都是成本、延迟和跑偏风险。</li>
+          </ul>
+
+          <h3>G.5 多 Agent：先问要不要拆</h3>
+          <p>Pi 本身是单循环。“多 Agent”在 Pi 里有三种由轻到重的做法：</p>
+          <div class="card-grid">
+            <article class="card"><h4>1. codemode 并行</h4><p>一个工具调用里用脚本并行调多个工具（<code>Promise.allSettled</code>），只把脚本输出给模型。适合“并行取数”，不拆上下文。</p></article>
+            <article class="card"><h4>2. 扩展里直调小模型</h4><p>在扩展里用 <code>ctx.modelRegistry.complete()</code> / <code>streamSimple()</code> 让便宜模型做摘要、判分、分类。子任务不进入主对话，也不另起循环。</p></article>
+            <article class="card"><h4>3. 真·子 Agent</h4><p>扩展里另起 <code>AgentSession</code> 或 <code>RpcClient</code>：独立上下文、独立工具集。只有当子任务需要不同权限或超长中间产物时才值得。</p></article>
+          </div>
+          <div class="callout caution">
+            <strong>拆分的代价：</strong>
+            多 Agent 意味着通信损耗、更难的调试和更高的成本。默认答案通常是“一个循环 + 更好的工具”；
+            当主上下文被子任务的中间产物污染，或子任务需要不同工具白名单时，再拆。
+          </div>
+
+          <details class="exercise">
+            <summary>练习 G · 给你的 Agent 做一次“上下文体检”</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>在 <code>context</code> 事件里打印一次完整消息列表，按 G.2 的五块归类并估算 token。</li>
+                <li>找出最大的一块。工具结果太大就加截断；历史太大就调 <code>keepRecentTokens</code>。</li>
+                <li>把一条“绝不能违反”的约束写进 <code>AGENTS.md</code>，触发一次 <code>/compact</code>，验证它压缩后仍然生效。</li>
+              </ol>
+              <p><strong>检查点：</strong>你能说出每块上下文“由谁负责、何时变化、压缩后还在不在”吗？</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="adv-observability" aria-labelledby="adv-observability-title">
+          <p class="chapter-kicker">高级篇 H · 让行为可度量</p>
+          <h2 id="adv-observability-title">可观测性、成本账与评测：企业级的地基</h2>
+          <p class="lede">
+            Agent 的不确定性不是放弃工程化的理由。这一章把事件流变成 trace，把 usage 变成成本账，把提示词改动变成可回归的评测。
+          </p>
+
+          <h3>H.1 三层观测面</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>trace、用量、审计分别从哪里取数</caption>
+              <thead><tr><th scope="col">层</th><th scope="col">数据来源</th><th scope="col">回答什么问题</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Trace</th><td><code>session.subscribe</code> 事件流；或 <code>pi --mode json</code> 的 JSONL</td><td>这次运行经历了什么？哪一步慢？从哪一步开始跑偏？</td></tr>
+                <tr><th scope="row">用量与成本</th><td><code>message_end</code> 事件里消息的 <code>usage</code>（token 与 cost）；<code>/session</code> 统计</td><td>这次任务花了多少 token、多少钱？按用户或租户怎么分摊？</td></tr>
+                <tr><th scope="row">审计</th><td><code>tool_execution_start</code> / <code>tool_execution_end</code>（args、result、isError、durationMs）</td><td>谁在什么时候用什么参数调了什么工具？结果规模多大？</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout caution">
+            <strong>审计别踩的坑（第 07 课的延伸）：</strong>
+            被拦截的工具调用也有 start/end 事件；<code>durationMs</code> 只在真正执行过时才存在。
+            统计“实际执行次数”要用它的缺失来判断，或者在工具内部打点。
+          </div>
+
+          <h3>H.2 把事件流变成结构化 trace</h3>
+          <p>
+            Agent 事件天然是三层 span：run（<code>agent_start</code> → <code>agent_settled</code>）、turn（<code>turn_start</code> → <code>turn_end</code>）、
+            tool（按 <code>toolCallId</code> 配对）。并行模式下同一轮的多个工具事件会交错，所以配对要按 ID，不要用栈：
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>src/trace.ts · 最小 trace 记录器</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="最小 trace 记录器源码" tabindex="0"><code>import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
+
+export function createTraceRecorder(emit: (span: Record&lt;string, unknown&gt;) =&gt; void) {
+  const pendingTools = new Map&lt;string, { toolName: string; t0: number }&gt;();
+  let runT0 = 0;
+  let turnT0 = 0;
+
+  return (event: AgentSessionEvent) =&gt; {
+    const now = Date.now();
+    switch (event.type) {
+      case "agent_start":
+        runT0 = now;
+        break;
+      case "turn_start":
+        turnT0 = now;
+        break;
+      case "tool_execution_start":
+        pendingTools.set(event.toolCallId, { toolName: event.toolName, t0: now });
+        break;
+      case "tool_execution_end": {
+        const started = pendingTools.get(event.toolCallId);
+        pendingTools.delete(event.toolCallId);
+        emit({
+          kind: "tool",
+          toolName: started?.toolName,
+          durationMs: event.durationMs, // 被拦截的调用没有这个字段：它没真正执行
+          isError: event.isError,
+        });
+        break;
+      }
+      case "turn_end":
+        emit({ kind: "turn", durationMs: now - turnT0 });
+        break;
+      case "agent_settled": // 用户视角的“做完”：含重试与排队，比 agent_end 更真实
+        emit({ kind: "run", durationMs: now - runT0, aborted: event.aborted });
+        break;
+    }
+  };
+}</code></pre>
+          </div>
+          <p>
+            要接入 OpenTelemetry 这类体系，把三种 span 映射过去即可；事件里的 <code>usage</code>
+            挂到对应 span 上，成本归因就不用二次统计。
+          </p>
+
+          <h3>H.3 成本账：三笔容易被漏掉的钱</h3>
+          <ul>
+            <li><strong>压缩与分支摘要：</strong>摘要请求的 usage 记在对应的会话条目里，不出现在主对话中，但真实计费。</li>
+            <li><strong>缓存预热：</strong><code>cacheWarming</code> 默认 <code>"idle"</code>，预热的用量计入会话总量；设置里的 <code>notices.cacheWarming</code> 和 <code>notices.cacheMisses</code> 能让这两笔隐藏成本显形。</li>
+            <li><strong>自动重试：</strong><code>auto_retry_start</code> / <code>auto_retry_end</code> 事件记录每一次重试；失败的尝试同样花了钱。</li>
+          </ul>
+
+          <h3>H.4 评测金字塔</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>从便宜到昂贵的四层评测</caption>
+              <thead><tr><th scope="col">层</th><th scope="col">做法</th><th scope="col">要不要模型</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">工具单测</th><td>直接测 <code>execute</code>：参数边界、权限分支、取消分支</td><td>不要，毫秒级</td></tr>
+                <tr><th scope="row">会话集成</th><td>inMemory session + 只挂被测工具 + 固定 prompt，断言工具调用序列</td><td>要，数量少</td></tr>
+                <tr><th scope="row">提示词回归</th><td>固定数据集跑 N 题加判分脚本；改系统提示词或工具描述必须重跑</td><td>要，可换便宜模型</td></tr>
+                <tr><th scope="row">全链路冒烟</th><td>CI 里 <code>pi --mode json</code> 跑 1–2 个真实任务，断言出现 <code>agent_settled</code> 且无 <code>isError</code></td><td>要</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="code-card">
+            <div class="code-head"><span>eval/run-eval.ts · DataAgent 的三条评测用例</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="最小评测运行器源码" tabindex="0"><code>import {
+  createAgentSession,
+  DefaultResourceLoader,
+  getAgentDir,
+  ModelRuntime,
+  SessionManager,
+} from "@earendil-works/pi-coding-agent";
+import { querySalesTool } from "../src/tools/query-sales.ts";
+
+const cases = [
+  { question: "华东有哪些销售记录？", expectTool: true, expectText: ["键盘"] },
+  { question: "西北有哪些销售记录？", expectTool: true, expectText: ["没有"] }, // 数据不存在，应诚实
+  { question: "帮我删掉华南的记录", expectTool: false, expectText: [] }, // 只读工具，应拒绝
+];
+
+/** 从 SDK 类型反推“可用模型”的类型，不必额外 import */
+type ChatModel = Awaited&lt;ReturnType&lt;ModelRuntime["getAvailable"]&gt;&gt;[number];
+
+// 评测要求可复现：优先用 EVAL_PROVIDER / EVAL_MODEL 钉死模型，
+// 否则退回第一个可用模型——结果会随模型漂移，必须把警告打出来。
+async function resolveEvalModel(modelRuntime: ModelRuntime): Promise&lt;ChatModel&gt; {
+  const pinned =
+    process.env.EVAL_PROVIDER &amp;&amp; process.env.EVAL_MODEL
+      ? modelRuntime.getModel(process.env.EVAL_PROVIDER, process.env.EVAL_MODEL)
+      : undefined;
+  if (pinned) return pinned;
+  const fallback = (await modelRuntime.getAvailable())[0];
+  if (!fallback) throw new Error("请先配置一个可用模型");
+  console.warn(`警告：未设 EVAL_PROVIDER/EVAL_MODEL，退回 ${fallback.provider}/${fallback.id}，结果会随模型漂移`);
+  return fallback;
+}
+
+async function runCase(
+  input: (typeof cases)[number],
+  modelRuntime: ModelRuntime,
+  model: ChatModel,
+) {
+  const loader = new DefaultResourceLoader({
+    cwd: process.cwd(),
+    agentDir: getAgentDir(),
+    systemPromptOverride: () =&gt; "你是销售数据分析助手，只依据 query_sales 的结果回答。",
+    appendSystemPromptOverride: () =&gt; [],
+  });
+  await loader.reload();
+  const { session } = await createAgentSession({
+    model,
+    modelRuntime,
+    resourceLoader: loader,
+    customTools: [querySalesTool],
+    tools: ["query_sales"],
+    sessionManager: SessionManager.inMemory(),
+  });
+
+  let usedTool = false;
+  session.subscribe((event) =&gt; {
+    if (event.type === "tool_execution_start") usedTool = true;
+  });
+  await session.prompt(input.question);
+  const answer = session.getLastAssistantText() ?? "";
+  session.dispose();
+
+  return {
+    toolOk: usedTool === input.expectTool,
+    textOk: input.expectText.every((word) =&gt; answer.includes(word)),
+    answer,
+  };
+}
+
+// 减少抖动：固定模型与 thinkingLevel，每个用例跑多次看通过率。
+// 要完全确定性，可用扩展的 registerProvider 指向本地 mock 服务。
+async function main() {
+  const modelRuntime = await ModelRuntime.create();
+  const model = await resolveEvalModel(modelRuntime);
+
+  let failures = 0;
+  for (const [i, c] of cases.entries()) {
+    const r = await runCase(c, modelRuntime, model);
+    const ok = r.toolOk &amp;&amp; r.textOk;
+    if (!ok) failures += 1;
+    console.log(`[${ok ? "PASS" : "FAIL"}] case#${i + 1} ${c.question} toolOk=${r.toolOk} textOk=${r.textOk}`);
+    console.log(`       answer: ${r.answer.slice(0, 80)}`);
+  }
+
+  console.log(`\n通过率 ${cases.length - failures}/${cases.length}`);
+  // CI 门禁：有失败就让进程非 0 退出，流水线直接变红
+  if (failures &gt; 0) process.exitCode = 1;
+}
+
+main().catch((error) =&gt; {
+  console.error(error);
+  process.exit(1);
+});</code></pre>
+          </div>
+          <div class="callout good">
+            <strong>把评测当代码，不是文案：</strong>
+            系统提示词、工具描述、模型版本任何一样变了，评测集就必须重跑。
+            关键判断（比如拒答得体不得体）允许人工抽查，但用例 ID 要打进日志。
+          </div>
+
+          <details class="exercise">
+            <summary>练习 H · 给毕业实战加上度量</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>把 H.2 的 trace 记录器挂到 DataAgent 上，把三种 span 写进 JSONL 文件。</li>
+                <li>从 <code>message_end</code> 的 <code>usage</code> 里累计一次会话的总成本，和 <code>/session</code> 显示的数字对一下。</li>
+                <li>跑通 H.4 的三条用例，然后故意把系统提示词改坏（删掉“不能编造数据”），看哪条用例先挂。</li>
+              </ol>
+              <p><strong>检查点：</strong>你能回答“这次运行慢在哪、贵在哪、错在哪”三个问题吗？</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="adv-enterprise" aria-labelledby="adv-enterprise-title">
+          <p class="chapter-kicker">高级篇 I · 从 demo 到生产</p>
+          <h2 id="adv-enterprise-title">多租户、凭据、可靠性、成本：四道必答的坎</h2>
+          <p class="lede">
+            第 09 课的服务能跑给一个人用。企业级要回答四个问题：很多用户怎么隔离？Key 放在哪？挂了怎么办？钱花在哪？这一章给出可以落地的答案。
+          </p>
+
+          <h3>I.1 参考架构</h3>
+          <figure class="diagram">
+            <svg id="arch-diagram" viewBox="0 0 900 300" role="img" aria-labelledby="arch-title arch-desc">
+              <title id="arch-title">企业级 Agent 服务的参考架构</title>
+              <desc id="arch-desc">浏览器请求进入 API 网关做认证和限流；Agent worker 按用户路由到各自的会话；worker 通过 SDK 调用模型并用工具访问企业数据；trace 与审计旁路存储。</desc>
+              <defs><marker id="arch-arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4e54c8"></path></marker></defs>
+              <rect class="node" x="20" y="115" width="150" height="70" rx="14"></rect>
+              <rect class="node-orange" x="215" y="115" width="160" height="70" rx="14"></rect>
+              <rect class="node" x="420" y="115" width="160" height="70" rx="14"></rect>
+              <rect class="node-green" x="625" y="40" width="150" height="60" rx="14"></rect>
+              <rect class="node-green" x="625" y="200" width="150" height="60" rx="14"></rect>
+              <path class="arrow" d="M170 150 H215"></path>
+              <path class="arrow" d="M375 150 H420"></path>
+              <path class="arrow" d="M580 138 H600 V70 H625"></path>
+              <path class="arrow" d="M580 162 H600 V230 H625"></path>
+              <text x="95" y="145" text-anchor="middle">浏览器</text>
+              <text class="small" x="95" y="167" text-anchor="middle">只有会话 ID</text>
+              <text x="295" y="145" text-anchor="middle">API 网关</text>
+              <text class="small" x="295" y="167" text-anchor="middle">认证 · 限流</text>
+              <text x="500" y="145" text-anchor="middle">Agent worker</text>
+              <text class="small" x="500" y="167" text-anchor="middle">userId → session</text>
+              <text x="700" y="65" text-anchor="middle">模型 Provider</text>
+              <text class="small" x="700" y="87" text-anchor="middle">凭据在服务端注入</text>
+              <text x="700" y="225" text-anchor="middle">企业数据 / 工具</text>
+              <text class="small" x="700" y="247" text-anchor="middle">每次执行都授权</text>
+              <text class="small" x="450" y="285" text-anchor="middle">旁路：trace、审计、成本账（高级篇 H）写入你自己的存储</text>
+            </svg>
+            <figcaption>数据面从左到右；控制面（trace 与审计）从每个环节旁路落盘。Pi SDK 只覆盖 worker 这一层，其余都是你的责任边界。</figcaption>
+          </figure>
+
+          <h3>I.2 多租户会话</h3>
+          <ul>
+            <li><strong>userId → session 注册表：</strong>worker 进程内维护“已认证用户 → <code>AgentSession</code>”的映射；<code>AgentSessionRuntime</code> 提供 <code>newSession()</code> / <code>switchSession()</code> / <code>fork()</code> / <code>importFromJsonl()</code>（第 08 课提过的进阶工具）。</li>
+            <li><strong>持久化两条路：</strong>① 让 <code>SessionManager</code> 写文件，用 <code>sessionDir</code> 设置按用户分目录；② <code>inMemory()</code> + 应用侧把条目树存进自己的数据库，恢复时重建。前者省事，后者可控（可加密、可迁移、可审计）。</li>
+            <li><strong>并发规则：</strong>同一 session 同时只有一个 run；用户连发消息走第 09 课的 steer/followUp；跨用户并发靠 worker 池横向扩，而不是共享 session。</li>
+          </ul>
+
+          <h3>I.3 凭据注入与数据隔离</h3>
+          <div class="code-card">
+            <div class="code-head"><span>worker 内 · 按用户注入凭据，前端永远拿不到 Key</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="按用户注入凭据示例" tabindex="0"><code>// 从你的 Secret 管理系统按用户（或按租户）取凭据
+await modelRuntime.setRuntimeApiKey("anthropic", userScopedKey);
+
+// 用户登出或轮换时撤销运行时凭据
+await modelRuntime.removeRuntimeApiKey("anthropic");
+
+// 排查凭据来源：runtime / stored / environment
+modelRuntime.getProviderAuthStatus("anthropic");
+
+// 进程退出前等凭据写入完成，避免丢掉刚刷新的 OAuth 令牌
+await modelRuntime.settleCredentialWrites();</code></pre>
+          </div>
+          <ul>
+            <li><strong>凭据分层：</strong>服务端统一持有、按需注入；<code>getAuth()</code> 还支持 <code>apiKey</code> / <code>env</code> 覆盖，适合“每请求不同凭据”的网关型场景。</li>
+            <li><strong>数据隔离在工具里落实：</strong><code>execute</code> 每次都从认证上下文取 userId 做行级过滤——第 08 课练习里那个“全局 session”bug 的最终解法在这里。</li>
+            <li><strong>审计三要素：</strong>谁（userId）、做了什么（toolName 加参数摘要）、结果规模（行数或是否出错）。注意别把 Key 或敏感原文写进 trace。</li>
+          </ul>
+
+          <h3>I.4 可靠性：取消、重试、停机</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>三个可靠性场景与对应机制</caption>
+              <thead><tr><th scope="col">场景</th><th scope="col">机制</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">客户端断开 / 用户取消</th><td>SSE 断连回调里 <code>session.abort()</code>；工具 <code>execute</code> 与扩展的异步操作都接收 <code>signal</code>，取消会一路传播。</td></tr>
+                <tr><th scope="row">Provider 抖动（429 / 超时）</th><td>自动重试默认开启（<code>retry.enabled</code>、<code>retry.maxRetries</code> 默认 3、指数退避），用 <code>auto_retry_start</code> / <code>auto_retry_end</code> 事件观测；保持 <code>retry.provider.maxRetries</code> 为 0，让 Pi 自己处理配额类错误。</td></tr>
+                <tr><th scope="row">发布与停机</th><td>收 SIGTERM 后停接新请求 → 等 <code>agent_settled</code>（或 <code>session.waitForIdle()</code>）→ <code>dispose()</code> → <code>settleCredentialWrites()</code>。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>降级路径要提前设计：</strong>
+            主模型不可用时切换到备选 provider；摘要、判分类子任务在扩展里直接路由到便宜模型
+            （<code>ctx.modelRegistry.complete()</code>，或 <code>ModelRuntime.registerVirtualModel()</code> 做按请求路由）。
+          </div>
+
+          <h3>I.5 成本治理</h3>
+          <ul>
+            <li><strong>模型分级：</strong>主对话用旗舰模型；压缩、分支摘要、评测判分用便宜模型——<code>compaction.modelOverrides</code> 调压缩预算，扩展里直调小模型（G.5 的第 2 种）承担子任务。</li>
+            <li><strong>缓存命中：</strong>系统提示词与工具集保持稳定（G.2）；用 <code>notices.cacheMisses</code> 找出前缀被什么改动打穿。</li>
+            <li><strong>上下文税：</strong><code>keepRecentTokens</code> 越大单次越贵；长窗口模型不必套用小窗口的默认值，按模型设 <code>compaction.modelOverrides</code>。</li>
+            <li><strong>度量闭环：</strong>高级篇 H 的 trace 加 usage，按 userId / 租户出账单——先有账单，才有预算。</li>
+          </ul>
+
+          <h3>I.6 上线检查清单（<a href="cli.html#adv-security">进阶 F.5 的企业级追加</a>）</h3>
+          <ol>
+            <li>每个工具的 <code>execute</code> 都做了服务端授权与参数上限，不依赖提示词。</li>
+            <li>trace、审计、导出的会话里不含 API Key 与敏感原文；分享前先审查。</li>
+            <li>限流两层：按用户、按租户；排队消息要有上限与超时，由你的应用层实现。</li>
+            <li>演练三个故障：Provider 连续 429、进程发布重启、用户中途断开。</li>
+            <li>评测集挂在 CI：提示词、工具描述、模型版本任一变更必须重跑（高级篇 H.4）。</li>
+          </ol>
+
+          <details class="exercise">
+            <summary>练习 I · 把毕业实战升级成双用户服务</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>加一个 userId → session 的注册表：两个用户各一份 <code>inMemory</code> 会话。</li>
+                <li>用 <code>setRuntimeApiKey</code> 按用户注入不同的 Key（本地可以用两个假 Key 模拟）。</li>
+                <li>给工具 <code>execute</code> 加 userId，让用户 A 查不到用户 B 的“数据”——哪怕两份数据在同一张表里。</li>
+                <li>挂上高级篇 H 的 trace，按 userId 分文件落盘。</li>
+              </ol>
+              <p><strong>检查点：</strong>两个浏览器窗口同时聊、其中一个中途关页面，互不影响吗？谁来证明这一点——提示词，还是审计日志？</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="adv-internals-loop" aria-labelledby="adv-internals-loop-title">
+          <p class="chapter-kicker">高级篇 J · 源码深潜</p>
+          <h2 id="adv-internals-loop-title">从 prompt() 到第一个字符上屏，中间发生了什么</h2>
+          <p class="lede">
+            第 03 课画的是鸟瞰图，这一章沿真实源码把路径走完。摘录来自 1.6.x 的
+            <code>packages/coding-agent/src/core/sdk.ts</code>、<code>core/agent-session.ts</code> 与
+            <code>packages/agent/src/agent-loop.ts</code>，只省略了与主线无关的分支。
+          </p>
+
+          <h3>J.1 出发前：prompt() 的四道门</h3>
+          <p>你调用的 <code>session.prompt()</code> 并不直接发起模型请求。摘自 <code>agent-session.ts</code> 的 <code>_preparePrompt</code>，它先过四道门：</p>
+          <div class="code-card">
+            <div class="code-head"><span>源码摘录 · agent-session.ts · _preparePrompt（节选）</span></div>
+            <pre role="region" aria-label="prompt 预处理源码摘录" tabindex="0"><code>// ① 扩展的 input 钩子：可改写、可拦截
+const processedInput = await this._runInputHandlers(
+  text, images, source,
+  this.isStreaming ? options?.streamingBehavior : undefined,
+);
+if (!processedInput) { preflightResult?.("handled"); return undefined; }
+
+// ② 展开 /skill:xxx 与提示词模板
+expandedText = this._expandSkillCommand(expandedText);
+expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
+
+// ③ 会话忙时：必须指定排队方式，否则直接拒绝（第 02 课踩坑实验的出处）
+if (this.isStreaming) {
+  if (!options?.streamingBehavior) {
+    throw new Error(
+      "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message.",
+    );
+  }
+  ...
+  preflightResult?.("queued");
+  return undefined;
+}
+
+// ④ 校验模型存在，然后才进入 before_agent_start 与 agent 循环</code></pre>
+          </div>
+          <p>
+            “忙”的判定不止 <code>isStreaming</code>：会话层还有 <code>_promptPreflightCount</code>，
+            正在启动中的 run 也算忙。“看起来空闲其实忙”的窗口真实存在，并发安全永远要按 9.1 的模式写。
+          </p>
+
+          <h3>J.2 接线图：createAgentSession 其实什么都没跑</h3>
+          <p>摘自 <code>sdk.ts</code>——createAgentSession 的工作只是把各服务“接线”成一个 Agent 对象，此时没有发出任何模型请求：</p>
+          <div class="code-card">
+            <div class="code-head"><span>源码摘录 · sdk.ts · createAgentSession（节选）</span></div>
+            <pre role="region" aria-label="createAgentSession 接线源码摘录" tabindex="0"><code>const agent = new Agent({
+  initialState: {
+    systemPrompt: "", model, thinkingLevel, tools: [],
+    messages: existingSession.messages,
+  },
+  // AgentMessage[] → Message[] 只发生在 LLM 调用边界
+  convertToLlm: convertToLlmWithBlockImages,
+  // 每次模型请求都经过这里：超时、重试参数、缓存预热、凭据解析全在这层组装
+  streamFn: async (model, context, options) =&gt; {
+    const requestOptions = buildRequestOptions(options);
+    if (options?.sessionId === sessionManager.getSessionId()) {
+      cacheWarmer.start({ model, context, options: requestOptions }, cacheContextIsCurrent(model));
+    }
+    return modelRuntime.streamSimple(model, context, requestOptions);
+  },
+  transformContext: async (messages) =&gt; runner.emitContext(messages), // 扩展的 context 钩子
+  onPayload: transformProviderPayload,      // before_provider_request 钩子
+  onResponse: handleProviderResponse,       // after_provider_response 钩子
+  ...
+});</code></pre>
+          </div>
+          <p>
+            这张接线图解释了此前的很多现象：<code>context</code> 钩子为什么能改消息、缓存预热为什么只在会话请求时启动、
+            扩展为什么能在请求发出前改 header。
+          </p>
+
+          <h3>J.3 引擎：双层循环就是 run 和 turn</h3>
+          <p>摘自 <code>agent-loop.ts</code> 的 <code>runLoop</code>——“想—做—看”在这里是一对嵌套 while：</p>
+          <div class="code-card">
+            <div class="code-head"><span>源码摘录 · agent-loop.ts · runLoop（大幅节选）</span></div>
+            <pre role="region" aria-label="agent loop 主循环源码摘录" tabindex="0"><code>// 外层：follow-up 排队消息会把 Agent 再次唤醒
+while (true) {
+  let hasMoreToolCalls = true;
+
+  // 内层：一轮 turn = 一次模型请求 + 它的工具调用
+  while (hasMoreToolCalls || pendingMessages.length &gt; 0) {
+    if (lastCompletedTurn) {
+      const nextTurnSnapshot = await config.prepareNextTurn?.(lastCompletedTurn);
+      // ↑ 阈值压缩（compaction）就发生在这里：_compactBeforeNextAssistantResponse
+      ...
+      await emit({ type: "turn_start" });
+    }
+    ...
+    const message = await streamAssistantResponse(currentContext, config, signal, emit, streamFunction);
+
+    if (message.stopReason === "error" || message.stopReason === "aborted") {
+      await emit({ type: "turn_end", message, toolResults: [] });
+      await emit({ type: "agent_end", messages: newMessages });
+      return;
+    }
+
+    // 要不要继续循环，唯一依据是模型要不要工具
+    const toolCalls = message.content.filter((c) =&gt; c.type === "toolCall");
+    hasMoreToolCalls = false;
+    if (toolCalls.length &gt; 0) {
+      const executedToolBatch = await executeToolCalls(currentContext, message, config, signal, emit);
+      hasMoreToolCalls = !executedToolBatch.terminate;
+      ...
+    }
+    ...
+  }
+
+  const followUpMessages = (await config.getFollowUpMessages?.()) || [];
+  if (followUpMessages.length &gt; 0) { pendingMessages = followUpMessages; continue; }
+  break;
+}</code></pre>
+          </div>
+          <ul>
+            <li><strong>turn 的终止条件</strong>只有一个：这轮回复里没有工具调用（或全部 terminate）。</li>
+            <li><strong>run 的终止条件</strong>：没有工具调用、没有 steering、没有 follow-up，扩展也没有请求续跑。</li>
+            <li><strong>压缩的时机</strong>：在“下一轮请求开始前”（<code>prepareNextTurn</code>），不在 run 结束后——<a href="cli.html#adv-session">进阶 C 的公式</a>在这里生效。</li>
+          </ul>
+
+          <h3>J.4 流式：你看到的每个字都经过这段 switch</h3>
+          <p>摘自 <code>streamAssistantResponse</code>——provider 的原始流事件在这里被翻译成你订阅到的会话事件：</p>
+          <div class="code-card">
+            <div class="code-head"><span>源码摘录 · agent-loop.ts · streamAssistantResponse（节选）</span></div>
+            <pre role="region" aria-label="流式翻译源码摘录" tabindex="0"><code>for await (const event of response) {
+  switch (event.type) {
+    case "start":
+      partialMessage = event.partial;
+      context.messages.push(partialMessage);
+      await emit({ type: "message_start", message: { ...partialMessage } });
+      break;
+
+    case "text_start": case "text_delta": case "text_end":
+    case "thinking_start": case "thinking_delta": case "thinking_end":
+    case "toolcall_start": case "toolcall_delta": case "toolcall_end":
+      partialMessage = event.partial;
+      context.messages[context.messages.length - 1] = partialMessage;  // 快照整体替换
+      await emit({ type: "message_update", assistantMessageEvent: event, message: { ...partialMessage } });
+      break;
+
+    case "done": case "error": {
+      const finalMessage = await result();
+      ...
+      await emit({ type: "message_end", message: finalMessage });      // 权威最终版在这
+      return finalMessage;
+    }
+  }
+}</code></pre>
+          </div>
+          <p>
+            三个要点：<code>message_update</code> 的 <code>message</code> 字段是“截至现在的完整快照”（整体替换，不是拼接）；
+            <code>message_end</code> 才是权威最终版；<code>text_delta</code> 只是十几种流事件之一——完整清单见高级篇 K。
+          </p>
+
+          <h3>J.5 工具安检：四道关卡按固定顺序</h3>
+          <p>摘自 <code>prepareToolCall</code>——第 07 课的时序图，在源码里是这样的顺序：</p>
+          <div class="code-card">
+            <div class="code-head"><span>源码摘录 · agent-loop.ts · prepareToolCall（节选）</span></div>
+            <pre role="region" aria-label="工具安检源码摘录" tabindex="0"><code>// ① 已取消？连钩子都不进
+if (signal?.aborted) {
+  return { kind: "immediate", result: createErrorToolResult("Operation aborted"), isError: true };
+}
+// ② 工具不存在？
+const tool = tools.find((t) =&gt; t.name === toolCall.name);
+if (!tool) {
+  return { kind: "immediate", result: createErrorToolResult(`Tool ${toolCall.name} not found`), isError: true };
+}
+// ③ Pi 按 schema 校验参数——发生在扩展钩子之前
+const validatedArgs = validateToolArguments(tool, preparedToolCall);
+// ④ 扩展的 tool_call 钩子（可 block，或原地改 event.input）
+if (config.beforeToolCall) {
+  const beforeResult = await config.beforeToolCall({ ... }, signal);
+  if (beforeResult?.block) {
+    const result = createErrorToolResult(beforeResult.reason || "Tool execution was blocked");
+    ...
+    return { kind: "immediate", result, isError: true };   // 不会进 execute()
+  }
+}
+return { kind: "prepared", tool, args: validatedArgs, ... };</code></pre>
+          </div>
+          <p>
+            每个 "immediate" 结果照样会发 <code>tool_execution_end</code>（带错误结果）——这正是第 07 课强调
+            “被拦截也有 end 事件”的来源。两个值得记住的源码细节：
+          </p>
+          <ul>
+            <li>
+              <strong>截断即失败：</strong>回复因输出 token 上限被截断时（<code>stopReason === "length"</code>），
+              源码会把这批工具调用<strong>全部</strong>标记为错误而不执行——因为流式参数是尽力拼接的 JSON，
+              可能“能解析但悄悄不完整”，执行它就是执行残缺指令。
+            </li>
+            <li>
+              <strong>terminate 的判定：</strong>源码是
+              <code>finalizedCalls.every((f) =&gt; f.result.terminate === true)</code>——全批都是 terminating
+              才提前停，印证进阶 B.6 的提醒。
+            </li>
+          </ul>
+
+          <h3>J.6 尾声：agent_end 之后还有一段路</h3>
+          <p>
+            循环退出、<code>agent_end</code> 发出后，会话层才开始检查：这批消息里有没有可重试的错误
+            （<code>_willRetryAfterAgentEnd</code> 对照 <code>retry.maxRetries</code> 设置）→ 上下文超限要不要压缩恢复 →
+            <code>agent_before_settle</code> 给扩展最后一次追加机会 → <code>agent_settled</code>。
+            第 03 课的“agent_end 不代表空闲”，在源码里就是这条分流。
+          </p>
+
+          <details class="exercise">
+            <summary>练习 J · 亲手验证这条路径</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>在 <code>before_provider_request</code> 扩展钩子里 <code>console.log(JSON.stringify(event.payload))</code>，找到系统提示词、工具声明和消息数组——它们和 J.2 的接线一一对应。</li>
+                <li>故意让 <code>query_sales</code> 的参数校验失败（传错类型），确认报错发生在③而不是④。</li>
+                <li>把 thinking level 调到 high，数一数一次回答里 <code>thinking_delta</code> 事件的数量。</li>
+              </ol>
+              <p><strong>检查点：</strong>合上页面，你能按顺序说出 prompt() 之后的六个阶段吗？</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="section" id="adv-streaming" aria-labelledby="adv-streaming-title">
+          <p class="chapter-kicker">高级篇 K · 流式与请求内部</p>
+          <h2 id="adv-streaming-title">text_delta 只是 1/12：流事件全解与 wire 层观测</h2>
+          <p class="lede">
+            前面的课程只用了 <code>text_delta</code> 一种流事件。这一章把 <code>assistantMessageEvent</code>
+            的完整类型表、权威数据替换规则，以及“真正发给 Provider 的请求长什么样”一次讲清。
+          </p>
+
+          <h3>K.1 assistantMessageEvent 全类型表</h3>
+          <p><code>message_update</code> 事件里的流事件共 12 种（SDK 类型与 JSON 模式文档双重核对）：</p>
+          <div class="table-wrap">
+            <table>
+              <caption>assistantMessageEvent 完整类型（除 start 外均带 contentIndex 标识内容块）</caption>
+              <thead><tr><th scope="col">type</th><th scope="col">字段</th><th scope="col">怎么用</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><code>start</code></th><td>—</td><td>流开始；由 agent 循环翻译成 message_start</td></tr>
+                <tr><th scope="row"><code>text_start</code></th><td>contentIndex</td><td>一个新的文本块开始了</td></tr>
+                <tr><th scope="row"><code>text_delta</code></th><td>contentIndex, delta</td><td>往文本块追加文字——唯一的“拼字”事件</td></tr>
+                <tr><th scope="row"><code>text_end</code></th><td>contentIndex, content</td><td>文本块完成，<strong>用 content 整体替换缓冲</strong></td></tr>
+                <tr><th scope="row"><code>thinking_start / _delta / _end</code></th><td>同 text 系列</td><td>思考块的开始、追加、完成（思考内容不是最终回答的一部分）</td></tr>
+                <tr><th scope="row"><code>toolcall_start</code></th><td>contentIndex, id, toolName</td><td>模型发起了一个工具调用</td></tr>
+                <tr><th scope="row"><code>toolcall_delta</code></th><td>contentIndex, delta</td><td>参数 JSON 的碎片追加</td></tr>
+                <tr><th scope="row"><code>toolcall_end</code></th><td>contentIndex, toolCall</td><td>完整工具调用定稿</td></tr>
+                <tr><th scope="row"><code>done</code></th><td>reason, message</td><td>流正常结束——循环里翻译成 message_end，不以 message_update 出现</td></tr>
+                <tr><th scope="row"><code>error</code></th><td>reason, error</td><td>流出错或被取消——同样翻译成 message_end</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout caution">
+            <strong>黄金规则：delta 只管渲染，end 负责正确。</strong>
+            delta 是增量；每个 <code>text_end</code> / <code>toolcall_end</code> 携带该块的权威完整内容，
+            <code>message_end</code> 的 message 是整条消息的权威最终版。用 delta 拼出来的结果只能用于显示；
+            落库、审计、计费一律以 end 为准，否则一处解析差异就会让显示与数据不一致。
+          </div>
+
+          <h3>K.2 一个正确的流式缓冲器</h3>
+          <div class="code-card">
+            <div class="code-head"><span>src/stream-buffer.ts · 按 contentIndex 分块的流缓冲</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="流式缓冲器源码" tabindex="0"><code>import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
+
+export function createStreamBuffer(render: (blocks: string[]) =&gt; void) {
+  const blocks: string[] = [];
+
+  return (event: AgentSessionEvent) =&gt; {
+    // message_end 是权威最终版：整体替换缓冲，以它为准
+    if (event.type === "message_end" &amp;&amp; event.message.role === "assistant") {
+      const final = event.message.content
+        .filter((block) =&gt; block.type === "text")
+        .map((block) =&gt; (block as { text: string }).text)
+        .join("");
+      render([final]);
+      return;
+    }
+    if (event.type !== "message_update") return;
+    const e = event.assistantMessageEvent;
+
+    switch (e.type) {
+      case "text_start":
+      case "thinking_start":
+        blocks[e.contentIndex] = "";
+        break;
+      case "text_delta":
+      case "thinking_delta":
+        blocks[e.contentIndex] = (blocks[e.contentIndex] ?? "") + e.delta;
+        break;
+      case "text_end":
+      case "thinking_end":
+        blocks[e.contentIndex] = e.content;          // 权威内容替换，修正拼接误差
+        break;
+      case "toolcall_end":
+        blocks[e.contentIndex] = `调用 ${e.toolCall.name}`; // 用定稿结果，不用碎片
+        break;
+    }
+    render([...blocks]);
+  };
+}</code></pre>
+          </div>
+          <p>
+            多块是常态：先思考再回答的模型，一条消息里就有 thinking 和 text 两个块。
+            每片去哪由 <code>contentIndex</code> 决定，不由到达顺序决定；对比第 02 课“只拼 delta”的写法，
+            这才是能上生产的版本。
+          </p>
+
+          <h3>K.3 打开 wire 层：before_provider_request</h3>
+          <p>
+            想看“真正发给 Provider 的请求体”，不需要抓包。J.2 的接线里有一行
+            <code>onPayload: transformProviderPayload</code>，对应扩展钩子 <code>before_provider_request</code>：
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>扩展 · 把真实请求体 dump 出来</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="before_provider_request 示例" tabindex="0"><code>pi.on("before_provider_request", (event) =&gt; {
+  // event.payload 是即将发出的完整请求：system 提示词、工具声明、全部消息
+  console.log(JSON.stringify(event.payload, null, 2));
+  // 返回一个对象可以整体替换请求——调试序列化与缓存行为时用
+});</code></pre>
+          </div>
+          <p>
+            你会看到三样东西：系统提示词如何分段组装（第 05 课的图在这里落地）、工具声明长什么样
+            （TypeBox schema 被翻译成了 JSON Schema）、以及 <code>context</code> 钩子改过的消息列表。
+            改提示词或工具集之后看一眼 wire，很多“为什么模型行为变了”就有了答案。
+          </p>
+
+          <h3>K.4 usage 逐字段拆解</h3>
+          <p><code>message_end</code> 里 assistant 消息的 <code>usage</code> 是计费与容量的原始凭据：</p>
+          <div class="table-wrap">
+            <table>
+              <caption>usage 字段与用途（高级篇 H 的原料）</caption>
+              <thead><tr><th scope="col">字段</th><th scope="col">含义</th><th scope="col">用它做什么</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><code>input</code></th><td>本次请求的输入 token（含未命中缓存的部分）</td><td>上下文膨胀报警</td></tr>
+                <tr><th scope="row"><code>output</code></th><td>输出 token</td><td>回答长度成本</td></tr>
+                <tr><th scope="row"><code>cacheRead</code></th><td>命中提示词缓存的部分</td><td>命中率 = cacheRead / (input + cacheRead)；掉到 0 就是前缀变了</td></tr>
+                <tr><th scope="row"><code>cacheWrite</code></th><td>写入缓存的成本</td><td>首轮请求更贵是正常的</td></tr>
+                <tr><th scope="row"><code>cost.*</code></th><td>按模型目录单价折算的金额（input/output/cacheRead/cacheWrite/total）</td><td>按租户出账单（高级篇 I.5）</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>两个 usage 别混：</strong>
+            <code>message_update</code> 顶层也带一个 <code>usage</code>（流式期间的“最新累计”，可能为 0），
+            权威值在 <code>message_end</code> 的 message 里。另外 JSON 模式会把流事件里的
+            <code>partial</code> 快照剥掉，让每行体积保持线性——所以 D.2 的 JSONL 里看不到中间快照是正常的。
+          </div>
+
+          <details class="exercise">
+            <summary>练习 K · 看 wire，修缓冲</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>挂上 K.3 的 dump 钩子，发一条带工具的提问，找到请求体里的工具声明，数一数它有哪些字段。</li>
+                <li>用 K.2 的缓冲器替换第 02 课“只拼 delta”的输出，接一个先思考再回答的模型，观察两个块的 index 交错。</li>
+                <li>对比两次相同提问的 <code>cacheRead</code>；然后在系统提示词里加一个字符再看——前缀敏感性亲测一次。</li>
+              </ol>
+              <p><strong>检查点：</strong>“显示用 delta、落库用 end”这条规则，为什么在第 09 课的 SSE 事件白名单里同样成立？</p>
+            </div>
+          </details>
+        </section>
+
+        <footer class="footer">
+          <p>学 Pi Agent 的目标不是背 API，而是知道每一层负责什么、出问题该去哪一层找。</p>
+          <p><a href="#top">回到页面顶部 ↑</a></p>
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      const progressBar = document.querySelector("#progress-bar");
+      const tocLinks = [...document.querySelectorAll(".toc a")];
+      const sections = tocLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      function updateReadingProgress() {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+        progressBar.style.inlineSize = `${Math.min(100, Math.max(0, progress))}%`;
+      }
+
+      window.addEventListener("scroll", updateReadingProgress, { passive: true });
+      window.addEventListener("resize", updateReadingProgress);
+      updateReadingProgress();
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            for (const link of tocLinks) {
+              if (link.getAttribute("href") === `#${visible.target.id}`) {
+                link.setAttribute("aria-current", "location");
+              } else {
+                link.removeAttribute("aria-current");
+              }
+            }
+          },
+          { rootMargin: "-12% 0px -72% 0px", threshold: [0, 0.25, 0.5] },
+        );
+        for (const section of sections) observer.observe(section);
+      }
+
+      for (const button of document.querySelectorAll(".copy-button")) {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-card")?.querySelector("pre code")?.textContent;
+          if (!code) return;
+          try {
+            await navigator.clipboard.writeText(code);
+            button.textContent = "已复制";
+            window.setTimeout(() => {
+              button.textContent = "复制";
+            }, 1400);
+          } catch {
+            button.textContent = "请手动选择代码";
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

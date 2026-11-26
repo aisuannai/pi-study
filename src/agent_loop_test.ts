@@ -8,6 +8,11 @@ const modelRuntime =  await ModelRuntime.create();
 const choices = await modelRuntime.getAvailable();
 const model = choices.find((item)=>item.id==='deepseek-v4.1-flash')?? choices[0]
 
+// 第 04 课的规则：选不出模型就停下，不要带着 undefined 往走
+if (!model) {
+  throw new Error("没有可用模型：请先配置 Provider 和 API Key");
+}
+
 console.log(`选择$${model.name}模型`)
 
 

@@ -22,7 +22,7 @@ const choices = await modelRuntime.getAvailable()
 for(const user of users){
     const model = choices.find((item)=>item.id === user.model_id)
     if(!model){
-        new Error(`可用模型没有${user.user_name}`)
+        throw new Error(`可用模型没有${user.user_name}`)
     }
     console.log(`用户${user.user_name} 选择了${user.model_name}模型`)
     const {session} = await createAgentSession({
