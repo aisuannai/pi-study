@@ -24,3 +24,4 @@ logs/
 # pi SDK 运行产物
 .pi/
 traces/
+data/

@@ -4,27 +4,19 @@ import {
   ModelRuntime,
 } from "@earendil-works/pi-coding-agent";
 
-const users=[
-    {
-       user_name:'张三',
-       model_id:'deepseek-v4.1-flash',
-       model_name:'鲸鱼4'
-    },
-    {
-       user_name:'李四',
-       model_id:'hy4-flash-free',
-       model_name:'企鹅4'
-    },
-]
+import { users } from "../common/common.ts"
 
-const modelRuntime = await ModelRuntime.create()
-const choices = await modelRuntime.getAvailable()
 for(const user of users){
-    const model = choices.find((item)=>item.id === user.model_id)
+    //每个用户单独一个ModelRuntime，互不影响
+    const modelRuntime = await ModelRuntime.create()
+    const model = modelRuntime.getModel(user.provider_id, user.model_id)
     if(!model){
-        throw new Error(`可用模型没有${user.user_name}`)
+        throw new Error(`可用模型没有${user.model_name}`)
     }
     console.log(`用户${user.user_name} 选择了${user.model_name}模型`)
+    if(user.api_key){
+        await modelRuntime.setRuntimeApiKey(model.provider,user.api_key)
+    }
     const {session} = await createAgentSession({
         model,modelRuntime
     })
@@ -32,6 +24,11 @@ for(const user of users){
     const unsubscribe = session.subscribe((event)=>{
         if(event.type==='message_update' && event.assistantMessageEvent.type==='text_delta'){
              process.stdout.write(event.assistantMessageEvent.delta);
+        }
+        if(event.type==='message_end' 
+             && event.message.role==='assistant'
+              && event.message.stopReason==='error'){
+             console.log(event.message.errorMessage)
         }
     })
 

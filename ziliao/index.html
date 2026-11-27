@@ -522,10 +522,6 @@
         marker-end: url("#learning-arrowhead");
       }
 
-      #agent-loop-diagram .arrow {
-        marker-end: url("#loop-arrowhead");
-      }
-
       #prompt-diagram .arrow {
         marker-end: url("#prompt-arrowhead");
       }
@@ -554,12 +550,209 @@
         marker-end: url("#life-arrowhead");
       }
 
-      #agent-loop-diagram .arrow-muted {
-        marker-end: url("#muted-arrowhead");
-      }
-
       #event-diagram .arrow-muted {
         marker-end: url("#event-muted-arrowhead");
+      }
+
+      /* —— 第 03 课 · 事件流播放器 —— */
+      .event-player {
+        display: grid;
+        gap: 0.9rem;
+      }
+
+      .player-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.55rem;
+      }
+
+      .player-btn {
+        min-block-size: 2.2rem;
+        padding: 0.3rem 0.95rem;
+        border: 1px solid var(--line);
+        border-radius: 0.55rem;
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.86rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .player-btn:hover {
+        border-color: var(--brand);
+      }
+
+      .player-btn-primary {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: var(--page);
+      }
+
+      .player-status {
+        margin: 0 0 0 auto;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .player-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(230px, 0.85fr);
+        gap: 0.9rem;
+        align-items: start;
+      }
+
+      @media (max-width: 760px) {
+        .player-body {
+          grid-template-columns: 1fr;
+        }
+
+        .player-status {
+          margin-inline-start: 0;
+        }
+      }
+
+      .player-timeline {
+        max-block-size: 350px;
+        overflow-y: auto;
+        padding: 0.6rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: var(--surface);
+      }
+
+      .player-empty {
+        margin: 0.4rem 0.3rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .player-event {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        padding: 0.26rem 0.5rem;
+        border-radius: 0.45rem;
+        font-size: 0.85rem;
+        line-height: 1.45;
+      }
+
+      .player-event .ev-name {
+        flex: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-weight: 750;
+      }
+
+      .player-event .ev-detail {
+        color: var(--muted);
+        min-width: 0;
+      }
+
+      .player-event[data-level="1"] {
+        padding-inline-start: 1.5rem;
+      }
+
+      .player-event[data-level="2"] {
+        padding-inline-start: 2.6rem;
+      }
+
+      .player-event[data-level="3"] {
+        padding-inline-start: 3.7rem;
+      }
+
+      .player-event[data-kind="agent"] .ev-name {
+        color: var(--orange);
+      }
+
+      .player-event[data-kind="turn"] .ev-name {
+        color: var(--brand-dark);
+      }
+
+      .player-event[data-kind="tool"] .ev-name {
+        color: var(--green);
+      }
+
+      .player-event[data-kind="update"] .ev-name {
+        color: var(--muted);
+      }
+
+      .player-event.is-active {
+        background: var(--brand-wash);
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .player-event {
+          animation: player-event-in 0.32s ease-out;
+        }
+
+        @keyframes player-event-in {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+        }
+      }
+
+      .player-side {
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .player-stages {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .player-stages li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.42rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 0.55rem;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .player-stages li::before {
+        content: "○";
+        flex: none;
+      }
+
+      .player-stages li.is-done {
+        color: var(--ink);
+      }
+
+      .player-stages li.is-done::before {
+        content: "●";
+        color: var(--green);
+      }
+
+      .player-stages li.is-current {
+        border-color: var(--brand);
+        background: var(--brand-wash);
+        color: var(--ink);
+        font-weight: 750;
+      }
+
+      .player-stages li.is-current::before {
+        content: "▶";
+        color: var(--brand);
+      }
+
+      .player-note {
+        margin: 0;
+        padding: 0.6rem 0.75rem;
+        border-inline-start: 3px solid var(--orange);
+        border-radius: 0.5rem;
+        background: var(--orange-wash);
+        color: var(--ink);
+        font-size: 0.85rem;
       }
 
       .diagram-description {
@@ -1202,43 +1395,71 @@ try {
           </div>
 
           <figure class="diagram">
-            <svg id="agent-loop-diagram" viewBox="0 0 900 410" role="img" aria-labelledby="loop-title loop-desc">
-              <title id="loop-title">Agent Loop 机制图</title>
-              <desc id="loop-desc">用户提问触发 run 和 turn；Pi 组装上下文并请求模型。若模型要调用工具，Pi 执行工具、保存结果，再进入下一轮。没有工具调用或任务完成后进入结束状态。</desc>
-              <defs>
-                <marker id="loop-arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#4e54c8"></path>
-                </marker>
-                <marker id="muted-arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#7a849d"></path>
-                </marker>
-              </defs>
-              <rect class="node" x="45" y="40" width="170" height="65" rx="14"></rect>
-              <rect class="node" x="285" y="40" width="170" height="65" rx="14"></rect>
-              <rect class="node" x="525" y="40" width="170" height="65" rx="14"></rect>
-              <rect class="node-green" x="525" y="175" width="170" height="65" rx="14"></rect>
-              <rect class="node-green" x="285" y="300" width="170" height="65" rx="14"></rect>
-              <rect class="node-orange" x="45" y="175" width="170" height="65" rx="14"></rect>
-              <path class="arrow" d="M215 72 H285"></path>
-              <path class="arrow" d="M455 72 H525"></path>
-              <path class="arrow" d="M610 105 V175"></path>
-              <path class="arrow" d="M525 208 H215"></path>
-              <path class="arrow" d="M130 240 V300 H285"></path>
-              <path class="arrow-muted" d="M455 333 H760 V72 H695"></path>
-              <text x="130" y="79" text-anchor="middle">用户 prompt</text>
-              <text x="370" y="79" text-anchor="middle">组装上下文</text>
-              <text x="610" y="79" text-anchor="middle">请求模型</text>
-              <text x="610" y="214" text-anchor="middle">执行工具</text>
-              <text x="370" y="339" text-anchor="middle">记录 tool result</text>
-              <text x="130" y="214" text-anchor="middle">最终回答 / 结束</text>
-              <text class="small" x="610" y="140" text-anchor="middle">模型要求工具时</text>
-              <text class="small" x="370" y="275" text-anchor="middle">结果进入下一轮上下文</text>
-              <text class="small" x="762" y="215" text-anchor="middle" transform="rotate(-90 762 215)">继续下一 turn</text>
-            </svg>
-            <figcaption>工具不是模型自己执行的；模型提出工具调用，Pi 在本机/服务端执行，再把结果交回模型。</figcaption>
+            <div class="event-player" id="event-player" role="region" aria-label="Agent 事件流动画演示">
+              <div class="player-toolbar">
+                <button type="button" class="player-btn player-btn-primary" id="player-toggle">播放</button>
+                <button type="button" class="player-btn" id="player-step">下一步</button>
+                <button type="button" class="player-btn" id="player-replay">重播</button>
+                <p class="player-status" id="player-status">共 23 步 · 点「播放」开始，也可以用「下一步」逐格走</p>
+              </div>
+              <div class="player-body">
+                <div class="player-timeline" id="player-timeline">
+                  <p class="player-empty">事件会按真实顺序流进来：缩进越深，层级越靠下（消息在轮里，update 在消息里）。</p>
+                </div>
+                <div class="player-side">
+                  <ol class="player-stages" id="player-stages" aria-label="当前循环阶段"></ol>
+                  <p class="player-note" id="player-note" aria-live="polite">播放到关键事件时，这里会解释一个容易踩的坑。</p>
+                </div>
+              </div>
+            </div>
+            <figcaption>
+              动画演示一次带工具调用的完整事件流（序列按 pi 1.6.1 源码与实测整理）。点「播放」自动推进，「下一步」逐格走。工具不是模型自己执行的；模型提出工具调用，Pi 在本机/服务端执行，再把结果交回模型。
+            </figcaption>
           </figure>
 
-          <h3>把词汇放进这张图里</h3>
+          <h3>从这段动画里记住的知识点</h3>
+          <div class="card-grid">
+            <article class="card"><h4>四层心智模型</h4><p><code>agent</code> 是一次完整任务，<code>turn</code> 是一次模型请求加它引发的工具执行，<code>message</code> 是一条消息，<code>message_update</code> 只出现在 assistant 消息的 start 与 end 之间。有工具调用，就至少两轮。</p></article>
+            <article class="card"><h4>三类流式子事件</h4><p><code>thinking_*</code> 是推理，<code>text_*</code> 是正文，<code>toolcall_*</code> 是参数 JSON 分片。块的序号看 <code>contentIndex</code>；start/end 可能交错，别靠事件顺序猜结构。</p></article>
+            <article class="card"><h4>半截 JSON 是常态</h4><p><code>toolcall_delta.delta</code> 只是参数的一小片，单独 <code>JSON.parse()</code> 必失败；完整参数在 <code>toolcall_end.toolCall.arguments</code> 里，或自己累积。</p></article>
+            <article class="card"><h4>stopReason 定下一步</h4><p><code>toolUse</code> → 执行工具再来一轮；<code>stop</code> → 正常说完；<code>length</code> → 所有 toolCall 直接判失败；<code>error/aborted</code> → 立即收尾。</p></article>
+            <article class="card"><h4>“结束”有三个层次</h4><p>一条消息结束是 <code>message_end</code>，一轮结束是 <code>turn_end</code>，整个任务结束看 <code>agent_settled</code>。<code>agent_end</code> 之后还可能自动重试（<code>willRetry</code>）。</p></article>
+            <article class="card"><h4>成败在 tool_execution_end</h4><p>工具的 <code>result</code>、<code>isError</code>、<code>durationMs</code> 只在结束事件里有；<code>tool_execution_update</code> 只是流式输出。</p></article>
+          </div>
+
+          <details class="exercise">
+            <summary>速查 · 完整事件序列（1.6.1 实测）</summary>
+            <div class="exercise-body">
+              <p>这是动画播放的全部 23 步，做完练习 3 之后再回来对照：</p>
+              <div class="code-card">
+                <div class="code-head"><span>事件序列 · session.prompt("我的IP是多少")</span></div>
+                <pre role="region" aria-label="完整事件序列" tabindex="0"><code>agent_start
+turn_start                          ← 第 1 轮 = 第 1 次模型请求
+  message_start/end  role:system    ← 工具声明消息，工具集变化时才发
+  message_start/end  role:user      ← 传入的 prompt，成对出现
+  message_start      role:assistant
+    message_update   thinking_start → delta×N → thinking_end
+    message_update   toolcall_start → delta×N → toolcall_end
+  message_end        role:assistant  stop=toolUse
+  tool_execution_start   bash { command: "ip addr" }
+  tool_execution_update×N
+  tool_execution_end     { result, isError, durationMs }
+  message_start/end  role:toolResult
+turn_end { message, toolResults }
+
+turn_start                          ← 第 2 轮
+  message_start      role:assistant
+    message_update   text_start → delta×N → text_end
+  message_end        role:assistant  stop=stop
+turn_end { message, toolResults: [] }
+
+agent_end { messages, willRetry }
+agent_settled { aborted }           ← 真正的终态</code></pre>
+              </div>
+            </div>
+          </details>
+
+          <h3>把词汇放进这段动画里</h3>
           <ul>
             <li><strong>Run：</strong>一次用户任务的完整处理。可能包含重试或多个 turn。</li>
             <li><strong>Turn：</strong>一次模型请求和这次回复里的工具调用处理。</li>
@@ -1404,7 +1625,7 @@ const resourceLoader = new DefaultResourceLoader({
 });
 
 await resourceLoader.reload();</code></pre>
-            <div class="line-note"><strong>它做了什么</strong><span><code>systemPromptOverride</code> 提供基础提示词；<code>reload()</code> 让 loader 完成资源加载；再把这个 loader 交给 <code>createAgentSession</code>。</span></div>
+            <div class="line-note"><strong>它做了什么</strong><span><code>systemPromptOverride</code> 覆盖基础提示词（base 来自 SYSTEM.md，文件不存在时为 undefined）；<code>reload()</code> 让 loader 完成资源加载；再把这个 loader 交给 <code>createAgentSession</code>。</span></div>
           </div>
 
           <h3>提示词来源的心智模型</h3>
@@ -1442,11 +1663,123 @@ await resourceLoader.reload();</code></pre>
             比如“用户只能看销售部数据”，不仅要写在提示词里，还要在工具执行时从认证上下文确认 userId 和部门，并对查询条件做服务端限制。
           </div>
 
+          <h3>ResourceLoader 是什么：会话的资源装配器</h3>
+          <p>
+            <code>DefaultResourceLoader</code> 负责把散落在磁盘上的“会话资源”发现、合并、校验成一份快照：
+            系统提示词、追加提示词、各级 <code>AGENTS.md</code>、技能（skills）、提示词模板、主题和扩展。
+            <code>createAgentSession</code> 拿到快照后，再用它和工具声明拼出真正发给模型的系统提示词。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <caption>生命周期：构造只是存配置，reload 才真正干活</caption>
+              <thead><tr><th scope="col">阶段</th><th scope="col">发生什么</th><th scope="col">源码位置</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">构造</th><td>只保存 cwd、agentDir、开关和回调，不读任何文件。</td><td><code>resource-loader.js</code> · 构造函数</td></tr>
+                <tr><th scope="row">reload()</th><td>扫描 agentDir 与 cwd 的资源目录，读取 settings，解析/安装包，发现 SYSTEM.md、APPEND_SYSTEM.md、AGENTS.md、skills、扩展，调用你的 override 回调，产出快照与诊断。</td><td><code>resource-loader.js</code> · reload 内部</td></tr>
+                <tr><th scope="row">消费</th><td>会话通过 <code>getSystemPrompt()</code>、<code>getAppendSystemPrompt()</code>、<code>getAgentsFiles()</code>、<code>getSkills()</code>、<code>getExtensions()</code> 取用快照。</td><td><code>agent-session.js</code> · _rebuildSystemPrompt</td></tr>
+                <tr><th scope="row">再次 reload</th><td>资源变化或手动刷新时重跑整轮发现与合并；override 回调每次都会重新求值。</td><td>同上</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>不调 <code>reload()</code> 就是空快照。</strong>
+            构造完直接交给 <code>createAgentSession</code>，技能、提示词、扩展都是空的。两个练习里都先 <code>await resourceLoader.reload()</code>，这一步不能省。
+          </div>
+
+          <h3>最终提示词由哪些段拼成</h3>
+          <p>
+            有 <code>customPrompt</code>（来自 <code>systemPrompt</code> 或 <code>systemPromptOverride</code>）时，它就是 <code>&lt;preamble&gt;</code> 段，
+            并且内置的 <code>&lt;tools&gt;</code>、<code>&lt;rules&gt;</code>、<code>&lt;docs&gt;</code> 三段<strong>不会生成</strong>；
+            没有时才回退到 Pi 内置的编码代理提示词。其余段落两种情况都会拼：
+          </p>
+          <div class="table-wrap">
+            <table>
+              <caption>系统提示词的段落（system-prompt.js · buildSystemPromptSections）</caption>
+              <thead><tr><th scope="col">段落</th><th scope="col">内容来源</th><th scope="col">customPrompt 存在时</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">preamble</th><td>你的自定义提示词，或 Pi 内置默认</td><td>你的内容（覆盖默认）</td></tr>
+                <tr><th scope="row">tools / rules / docs</th><td>工具说明、行为规则、文档指引</td><td><strong>不生成</strong></td></tr>
+                <tr><th scope="row">addendum</th><td><code>appendSystemPrompt</code> / <code>APPEND_SYSTEM.md</code></td><td>照常追加</td></tr>
+                <tr><th scope="row">project_context</th><td><code>agentDir/AGENTS.md</code> + 从 cwd 一路向上的各级 <code>AGENTS.md</code></td><td>照常追加</td></tr>
+                <tr><th scope="row">skills</th><td>已加载技能的说明</td><td>照常追加</td></tr>
+                <tr><th scope="row">cwd</th><td>会话工作目录</td><td>照常追加</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            这就解释了“明明覆盖了系统提示词，还看得到插件内容”的现象：override 只替换 preamble，AGENTS.md、技能和追加段是<strong>另外的输入</strong>。
+            想知道这次会话到底发了什么，直接打印 <code>session.systemPrompt</code>（getter），或用 loader 的
+            <code>getSystemPrompt()</code>、<code>getAppendSystemPrompt()</code>、<code>getAgentsFiles()</code>、<code>getSkills()</code>、<code>getExtensions()</code> 逐项检查。
+          </p>
+
+          <h3>参数能力总表</h3>
+          <div class="table-wrap">
+            <table>
+              <caption>DefaultResourceLoaderOptions 常用参数（1.6.1 · resource-loader.d.ts）</caption>
+              <thead><tr><th scope="col">分组</th><th scope="col">参数</th><th scope="col">作用</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">必填</th><td><code>cwd</code></td><td>项目工作目录：决定从哪发现项目资源（AGENTS.md、<code>.pi/skills</code>、<code>.pi/extensions</code>、settings），也是文件工具相对路径与 bash 的基准。</td></tr>
+                <tr><th scope="row">必填</th><td><code>agentDir</code></td><td>用户级配置柜（默认 <code>~/.pi/agent</code>）：全局 AGENTS.md、skills、npm 扩展、settings、sessions 都在这里。loader 的 agentDir 与 ModelRuntime 的 auth/models 是两条独立路径。</td></tr>
+                <tr><th scope="row">开关</th><td><code>noExtensions</code></td><td>不加载“自动发现”的扩展；CLI <code>--extension</code> 与你传入的 <code>extensionFactories</code> 仍会加载。</td></tr>
+                <tr><th scope="row">开关</th><td><code>noSkills</code></td><td>不扫描默认技能目录；<code>additionalSkillPaths</code> 仍生效（白名单机制）。</td></tr>
+                <tr><th scope="row">开关</th><td><code>noPromptTemplates</code> / <code>noThemes</code> / <code>noContextFiles</code></td><td>分别关闭提示词模板、主题、AGENTS.md 的自动加载。</td></tr>
+                <tr><th scope="row">开关</th><td><code>disabledBuiltinExtensions</code></td><td>按名字禁用内置扩展，例如 <code>["mcp"]</code>。</td></tr>
+                <tr><th scope="row">白名单</th><td><code>additionalSkillPaths</code> 等 additional*Paths 四件</td><td>显式追加资源路径；技能路径可以是含 SKILL.md 的目录、含多个技能子目录的父目录或单个 .md 文件。</td></tr>
+                <tr><th scope="row">内联扩展</th><td><code>extensionFactories</code></td><td>直接传入扩展工厂（如第 07 课的 limitGuard），不经过磁盘发现。</td></tr>
+                <tr><th scope="row">静态提示词</th><td><code>systemPrompt</code> / <code>appendSystemPrompt</code></td><td>直接给字符串 / 字符串数组，不需要 base，不随 reload 重算。</td></tr>
+                <tr><th scope="row">覆盖钩子</th><td><code>systemPromptOverride(base)</code> / <code>appendSystemPromptOverride(base)</code></td><td>base 来自 <code>SYSTEM.md</code> / <code>APPEND_SYSTEM.md</code>（项目 <code>.pi/</code> 下需项目受信任，否则看 agentDir 下）。返回值分别成为 preamble 与 addendum。</td></tr>
+                <tr><th scope="row">覆盖钩子</th><td><code>agentsFilesOverride</code> / <code>skillsOverride</code> / <code>promptsOverride</code> / <code>themesOverride</code> / <code>extensionsOverride</code></td><td>拿到加载结果后整体改写对应资源集合。</td></tr>
+                <tr><th scope="row">环境</th><td><code>settingsManager</code> / <code>eventBus</code></td><td>注入设置与事件总线；<code>SettingsManager.inMemory()</code> 可隔绝宿主与项目的 settings。</td></tr>
+                <tr><th scope="row">包管理</th><td><code>packageCommandOutput</code> / <code>onPackageProgress</code></td><td>包安装/刷新时的输出与进度回调。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout caution">
+            <strong>override 语义速查（踩坑向）。</strong>
+            <code>systemPrompt</code> 与 <code>systemPromptOverride(base)</code> 都是<strong>覆盖</strong> preamble，不是“一个覆盖、一个追加”——追加是 <code>appendSystemPrompt</code> 那一组。
+            回调<strong>必须同步</strong>（类型是 <code>=&gt; string | undefined</code>），不能 async；异步数据（查库取用户画像）要在构造前 await 好。
+            返回 <code>undefined</code> 不是“没有系统提示词”，而是回退到 Pi 内置默认（连 tools/rules/docs 一起回来）。
+          </div>
+
+          <h3>多用户动态空间：把两个练习收编成模式</h3>
+          <p>
+            配套练习 <code>src/kecheng/dynamic-user-prompt.ts</code>（每用户覆盖提示词）和
+            <code>src/kecheng/dynamic-user-workspace.ts</code>（每用户独立空间）合起来，就是多用户 Agent 的资源层骨架：
+          </p>
+          <div class="table-wrap">
+            <table>
+              <caption>“每个用户一个空间”的三层分工</caption>
+              <thead><tr><th scope="col">层</th><th scope="col">管什么</th><th scope="col">怎么隔离</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">资源</th><td>AGENTS.md、skills、扩展、settings、系统提示词</td><td>每用户 <code>cwd</code> + <code>agentDir</code>（空目录 = 天然干净），配 no* 开关；按用户缓存 loader，别每请求重建。</td></tr>
+                <tr><th scope="row">状态</th><td>会话 JSONL、用户文件</td><td><code>SessionManager.create(用户 workspace, 用户 sessions 目录)</code>；cwd 要同时传给 loader 和 session——前者管资源发现，后者管工具行为与会话元数据，互不代劳。</td></tr>
+                <tr><th scope="row">凭据</th><td>模型目录与 API Key</td><td>ModelRuntime 与 loader 的 agentDir 无关；每用户 runtime + <code>setRuntimeApiKey</code> 运行时覆盖（见第 04 课练习）。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout caution">
+            <strong>目录布局：</strong>workspace / agent / sessions 三个目录<strong>平级</strong>。别把 agent 放进 workspace——文件工具能读写工作目录，等于让 Agent 能改自己的配置、读自己的历史。
+            也别用 <code>PI_CODING_AGENT_DIR</code> 环境变量做每用户隔离：它是进程级的，一改连 ModelRuntime 的 auth/models 一起搬走，<code>getAvailable()</code> 会变空。
+          </div>
+
           <details class="exercise">
             <summary>练习 5 · 写一个你自己的角色卡</summary>
             <div class="exercise-body">
               <p>用四句话写：你是谁、能做什么、不能做什么、答案应该是什么格式。替换示例中的四条规则，再问一个与你的兴趣/工作有关的问题。</p>
               <p><strong>检查点：</strong>让 Agent 明确说出“我不知道”的条件；不要只写“请准确回答”。</p>
+            </div>
+          </details>
+
+          <details class="exercise">
+            <summary>练习 5b · 给每个用户一个干净空间</summary>
+            <div class="exercise-body">
+              <p>对照 <code>src/kecheng/dynamic-user-workspace.ts</code> 和 <code>src/common/common.ts</code> 的 <code>createUserSpace</code>：</p>
+              <ol>
+                <li>给每个用户建 <code>workspace / agent / sessions</code> 三个平级目录，loader 与 session 分别指向它们。</li>
+                <li>打开 <code>noContextFiles / noSkills / noExtensions</code>，用 <code>console.log(loader.getAgentsFiles())</code> 确认全局 AGENTS.md 没有被加载。</li>
+                <li>打印 <code>session.systemPrompt</code>，确认里面只有你的 preamble 和 cwd 段，没有全局 AGENTS.md 与技能说明。</li>
+              </ol>
+              <p><strong>检查点：</strong>能解释 loader 的 cwd 与 session 的 cwd 为什么都要传——前者管资源发现，后者管工具行为与会话元数据；漏传后者，工具就会在你的仓库根目录里跑。</p>
             </div>
           </details>
 
@@ -2153,6 +2486,236 @@ try {
           }
         });
       }
+
+      // —— 第 03 课 · 事件流播放器 ——
+      const playerStages = [
+        "任务开始",
+        "组装上下文",
+        "请求模型",
+        "执行工具",
+        "回填结果",
+        "下一轮 · 最终回答",
+        "收尾",
+      ];
+
+      const playerSteps = [
+        { level: 0, kind: "agent", name: "agent_start", detail: "任务开始：一次完整任务（含自动重试、排队消息）", stage: 0 },
+        { level: 1, kind: "turn", name: "turn_start", detail: "第 1 轮开始 = 第 1 次模型请求", stage: 1 },
+        { level: 2, kind: "message", name: "message_start", detail: "role:system · 工具声明消息（toolsAdded，工具集变化时才发）", stage: 1 },
+        { level: 2, kind: "message", name: "message_end", detail: "role:system · start/end 成对出现，中间没有 update", stage: 1 },
+        { level: 2, kind: "message", name: "message_start", detail: "role:user · 你传入的 prompt", stage: 1 },
+        { level: 2, kind: "message", name: "message_end", detail: "role:user", stage: 1 },
+        { level: 2, kind: "message", name: "message_start", detail: "role:assistant · 开始流式输出", stage: 2 },
+        {
+          level: 3,
+          kind: "update",
+          name: "message_update",
+          detail: "thinking_start → delta×N → thinking_end · 推理文本流式",
+          stage: 2,
+          note: "分片数量取决于 token 数：思考几句 → 十几片；工具参数是长 JSON → 几十上百片，都属正常。",
+        },
+        {
+          level: 3,
+          kind: "update",
+          name: "message_update",
+          detail: "toolcall_start → delta×N → toolcall_end · 工具参数分片",
+          stage: 2,
+          note: "toolcall_delta.delta 是半截 JSON，单独 JSON.parse() 必失败；完整参数在 toolcall_end.toolCall.arguments。",
+        },
+        {
+          level: 2,
+          kind: "message",
+          name: "message_end",
+          detail: "role:assistant · stop=toolUse",
+          stage: 2,
+          note: "stopReason=toolUse → 执行工具 → 结果回填 → 进入下一轮。",
+        },
+        { level: 1, kind: "tool", name: "tool_execution_start", detail: "bash · { command: \"ip addr\" }", stage: 3 },
+        { level: 1, kind: "tool", name: "tool_execution_update", detail: "×N · 工具流式输出（可选）", stage: 3 },
+        {
+          level: 1,
+          kind: "tool",
+          name: "tool_execution_end",
+          detail: "{ result, isError, durationMs }",
+          stage: 3,
+          note: "工具的成败和耗时只有 tool_execution_end 知道；update 只是流式输出。",
+        },
+        { level: 2, kind: "message", name: "message_start", detail: "role:toolResult · 成对出现，没有 update", stage: 4 },
+        { level: 2, kind: "message", name: "message_end", detail: "role:toolResult", stage: 4 },
+        {
+          level: 1,
+          kind: "turn",
+          name: "turn_end",
+          detail: "{ message, toolResults } · 第 1 轮结束",
+          stage: 4,
+          note: "turn_end 携带本轮工具结果；有工具调用 → 至少两轮。",
+        },
+        { level: 1, kind: "turn", name: "turn_start", detail: "第 2 轮 = 第 2 次模型请求", stage: 5 },
+        { level: 2, kind: "message", name: "message_start", detail: "role:assistant", stage: 5 },
+        {
+          level: 3,
+          kind: "update",
+          name: "message_update",
+          detail: "text_start → delta×N → text_end · 正文流式",
+          stage: 5,
+          note: "text_end 只是文本块结束，不是“AI 说完了”；同一消息后面还可能跟 toolCall。",
+        },
+        {
+          level: 2,
+          kind: "message",
+          name: "message_end",
+          detail: "role:assistant · stop=stop",
+          stage: 5,
+          note: "stopReason=stop → 正常说完，检查 follow-up 后收尾。",
+        },
+        { level: 1, kind: "turn", name: "turn_end", detail: "toolResults: [] · 没有工具调用的轮", stage: 5 },
+        {
+          level: 0,
+          kind: "agent",
+          name: "agent_end",
+          detail: "{ messages, willRetry }",
+          stage: 6,
+          note: "willRetry=true 时后面还会自动重试——agent_end 不是终态。",
+        },
+        {
+          level: 0,
+          kind: "agent",
+          name: "agent_settled",
+          detail: "{ aborted: false }",
+          stage: 6,
+          note: "真正的“不会再有后续了”看 agent_settled。",
+        },
+      ];
+
+      const playerToggle = document.querySelector("#player-toggle");
+      const playerStepButton = document.querySelector("#player-step");
+      const playerReplay = document.querySelector("#player-replay");
+      const playerStatus = document.querySelector("#player-status");
+      const playerTimeline = document.querySelector("#player-timeline");
+      const playerStagesList = document.querySelector("#player-stages");
+      const playerNote = document.querySelector("#player-note");
+      const playerNoteHint = playerNote.textContent;
+
+      let playerIndex = -1;
+      let playerTimer = null;
+
+      function playerRenderStages() {
+        playerStagesList.textContent = "";
+        for (const label of playerStages) {
+          const item = document.createElement("li");
+          item.textContent = label;
+          playerStagesList.append(item);
+        }
+      }
+
+      function playerMarkStages(stage) {
+        [...playerStagesList.children].forEach((item, i) => {
+          item.classList.toggle("is-done", stage !== null && i < stage);
+          item.classList.toggle("is-current", stage !== null && i === stage);
+        });
+      }
+
+      function playerAddRow(step) {
+        playerTimeline.querySelector(".player-empty")?.remove();
+        const row = document.createElement("div");
+        row.className = "player-event";
+        row.dataset.level = String(step.level);
+        row.dataset.kind = step.kind;
+        const name = document.createElement("span");
+        name.className = "ev-name";
+        name.textContent = step.name;
+        const detail = document.createElement("span");
+        detail.className = "ev-detail";
+        detail.textContent = step.detail;
+        row.append(name, detail);
+        playerTimeline.append(row);
+        for (const active of playerTimeline.querySelectorAll(".is-active")) {
+          active.classList.remove("is-active");
+        }
+        row.classList.add("is-active");
+        const overflow = row.offsetTop + row.offsetHeight - playerTimeline.scrollTop - playerTimeline.clientHeight;
+        if (overflow > 0) {
+          playerTimeline.scrollTop += overflow + 8;
+        }
+      }
+
+      function playerShow(index, playing) {
+        const step = playerSteps[index];
+        playerAddRow(step);
+        playerMarkStages(step.stage);
+        if (step.note) playerNote.textContent = step.note;
+        if (index === playerSteps.length - 1) {
+          playerStopPlayer();
+          playerToggle.textContent = "播放";
+          playerStatus.textContent = `演示完成 · 共 ${playerSteps.length} 步（点「播放」重新开始）`;
+        } else {
+          playerStatus.textContent = `第 ${index + 1}/${playerSteps.length} 步 · ${playing ? "播放中" : "已暂停"}`;
+        }
+      }
+
+      function playerStopPlayer() {
+        if (playerTimer) {
+          window.clearTimeout(playerTimer);
+          playerTimer = null;
+        }
+      }
+
+      function playerReset() {
+        playerStopPlayer();
+        playerIndex = -1;
+        playerTimeline.textContent = "";
+        const hint = document.createElement("p");
+        hint.className = "player-empty";
+        hint.textContent = "事件会按真实顺序流进来：缩进越深，层级越靠下（消息在轮里，update 在消息里）。";
+        playerTimeline.append(hint);
+        playerRenderStages();
+        playerMarkStages(null);
+        playerNote.textContent = playerNoteHint;
+        playerToggle.textContent = "播放";
+        playerStatus.textContent = `共 ${playerSteps.length} 步 · 点「播放」开始，也可以用「下一步」逐格走`;
+      }
+
+      function playerPlay() {
+        if (playerIndex >= playerSteps.length - 1) playerReset();
+        playerToggle.textContent = "暂停";
+        const tick = () => {
+          playerIndex += 1;
+          playerShow(playerIndex, true);
+          if (playerIndex < playerSteps.length - 1) {
+            playerTimer = window.setTimeout(tick, 1150);
+          }
+        };
+        tick();
+      }
+
+      function playerPause() {
+        playerStopPlayer();
+        playerToggle.textContent = "播放";
+        playerStatus.textContent = `第 ${playerIndex + 1}/${playerSteps.length} 步 · 已暂停`;
+      }
+
+      playerToggle.addEventListener("click", () => {
+        if (playerTimer) {
+          playerPause();
+          return;
+        }
+        playerPlay();
+      });
+
+      playerStepButton.addEventListener("click", () => {
+        if (playerIndex >= playerSteps.length - 1) playerReset();
+        playerStopPlayer();
+        playerToggle.textContent = "播放";
+        playerIndex += 1;
+        playerShow(playerIndex, false);
+      });
+
+      playerReplay.addEventListener("click", () => {
+        playerReset();
+        playerPlay();
+      });
+
+      playerReset();
     </script>
   </body>
 </html>

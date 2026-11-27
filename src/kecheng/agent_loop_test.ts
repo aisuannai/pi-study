@@ -23,13 +23,7 @@ const {session} = await createAgentSession({
 let i = 0
 //订阅
 const unsubscribe = session.subscribe((event)=>{
-//     if (
-//     event.type === "message_update" &&
-//     event.assistantMessageEvent.type === "text_delta"
-//   ) {
-//     process.stdout.write(event.assistantMessageEvent.delta);
-//   }
-   //console.log(`事件类型:${event.type}`)
+   //这个事件监听器是同步循环，如果一个监听事件卡住，其他的监听事件也会停下排队，因此这里面不能处理如数据库等耗时的业务
    switch(event.type){
     case "agent_start":
       console.log("run 开始");
