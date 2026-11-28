@@ -26,9 +26,11 @@ for(const user of users){
         model,
         modelRuntime,
         resourceLoader: user_space.loader,
-        //资源加载器都写了cwd,为什么这里还需要写一遍
+        // loader 的 cwd 只在 reload() 时用于“资源发现”（AGENTS.md、.pi/skills、.pi/extensions）；
+        // session 的 cwd 决定“运行时行为”：文件工具相对路径、bash 起点、系统提示词的 <cwd> 段、会话元数据。
+        // 不传会退回 process.cwd()（sdk.d.ts），工具就会跑到本仓库根目录——所以两处都要写。
         cwd: user_space.workspace,
-        //自定义会会话空间
+        // 每个用户独立的会话文件目录
         sessionManager: user_space.sessionManager
     })
 

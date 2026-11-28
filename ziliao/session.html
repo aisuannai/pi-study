@@ -1,0 +1,4454 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="导入 pi 的 .jsonl 会话文件，按时间线重放一次 Agent 会话：用户输入、模型思考、工具调用、工具结果与最终回答。">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>会话回放 · Pi Agent 入门实验室</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --page: #f6f7fb;
+        --surface: #fff;
+        --surface-2: #f0f3fa;
+        --ink: #20263a;
+        --muted: #58627a;
+        --line: #dce2ef;
+        --brand: #4e54c8;
+        --brand-dark: #353b9f;
+        --brand-wash: #eceeff;
+        --on-brand: #fff;
+        --violet: #5b3fc4;
+        --violet-wash: #f0ecff;
+        --teal: #0f6b63;
+        --teal-wash: #e6f7f4;
+        --green: #176b4b;
+        --green-wash: #e8f6ef;
+        --orange: #814900;
+        --orange-wash: #fff4df;
+        --red: #a3293d;
+        --red-wash: #fff0f2;
+        --focus-ring: #875600;
+        --code: #171b2b;
+        --code-ink: #e9edff;
+        --shadow: 0 16px 42px rgb(38 48 89 / 8%);
+        --radius: 18px;
+        --topbar: 3.5rem;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        font-family: var(--sans);
+        scroll-behavior: smooth;
+        scroll-padding-top: 5rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --page: #111522;
+          --surface: #1a2030;
+          --surface-2: #222a3d;
+          --ink: #eef1ff;
+          --muted: #b3bdd4;
+          --line: #343e56;
+          --brand: #a5a9ff;
+          --brand-dark: #d2d4ff;
+          --brand-wash: #292e4e;
+          --on-brand: #151a2c;
+          --violet: #c3b2ff;
+          --violet-wash: #2a2450;
+          --teal: #7fd8cc;
+          --teal-wash: #173633;
+          --green: #80d6ad;
+          --green-wash: #18382e;
+          --orange: #ffd27f;
+          --orange-wash: #3a2e1c;
+          --red: #ff9aa8;
+          --red-wash: #3b2029;
+          --focus-ring: #ffd27f;
+          --code: #10131d;
+          --code-ink: #edf0ff;
+          --shadow: 0 16px 42px rgb(0 0 0 / 24%);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        min-inline-size: 320px;
+        background: var(--page);
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse at 84% 0%, rgb(103 111 224 / 10%), transparent 36rem),
+          var(--page);
+        font-size: 1rem;
+        line-height: 1.72;
+      }
+
+      a {
+        color: var(--brand-dark);
+        text-underline-offset: 0.2em;
+        text-decoration-thickness: 1px;
+      }
+
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+
+      :where(a, button, input, summary, select, label):focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 3px;
+      }
+
+      code,
+      pre {
+        font-family: var(--mono);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      .topbar {
+        position: sticky;
+        z-index: 40;
+        inset-block-start: 0;
+        border-block-end: 1px solid var(--line);
+        background: var(--page);
+        background: color-mix(in srgb, var(--page) 88%, transparent);
+        backdrop-filter: blur(14px);
+      }
+
+      .topbar-inner {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        inline-size: min(1440px, 100%);
+        margin-inline: auto;
+        padding: 0.55rem 1.25rem;
+        min-block-size: var(--topbar);
+      }
+
+      .brand {
+        display: inline-flex;
+        gap: 0.55rem;
+        align-items: center;
+        color: var(--ink);
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        inline-size: 1.9rem;
+        block-size: 1.9rem;
+        border-radius: 0.65rem;
+        color: #fff;
+        background: linear-gradient(135deg, #5d66db, #353b9f);
+        font-size: 1.05rem;
+        font-weight: 800;
+      }
+
+      .topbar-sub {
+        color: var(--muted);
+        font-size: 0.82rem;
+        white-space: nowrap;
+      }
+
+      .topbar-spacer {
+        flex: 1;
+      }
+
+      .privacy {
+        color: var(--green);
+        background: var(--green-wash);
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.72rem;
+        white-space: nowrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        gap: 0.35rem;
+        align-items: center;
+        justify-content: center;
+        padding: 0.42rem 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        background: var(--surface);
+        font-size: 0.86rem;
+        font-weight: 650;
+        line-height: 1.3;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        border-color: var(--brand);
+        color: var(--brand-dark);
+      }
+
+      .btn.primary {
+        border-color: var(--brand);
+        color: var(--on-brand);
+        background: var(--brand);
+      }
+
+      .btn.primary:hover {
+        background: var(--brand-dark);
+        color: var(--on-brand);
+      }
+
+      .btn.small {
+        padding: 0.28rem 0.62rem;
+        font-size: 0.78rem;
+      }
+
+      .link-btn {
+        padding: 0;
+        border: 0;
+        color: var(--brand-dark);
+        background: none;
+        font-size: inherit;
+        font-weight: 700;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+        cursor: pointer;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        gap: 0.45rem;
+        align-items: center;
+        padding: 0.22rem 0.68rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--brand-dark);
+        background: var(--brand-wash);
+        font-size: 0.76rem;
+        font-weight: 750;
+      }
+
+      /* ---------- 落地页 ---------- */
+
+      .landing {
+        inline-size: min(920px, 100%);
+        margin-inline: auto;
+        padding: clamp(1.5rem, 5vw, 3.5rem) 1.25rem 4rem;
+      }
+
+      .landing h1 {
+        margin: 0.7rem 0 0.4rem;
+        font-size: clamp(1.8rem, 4vw, 2.9rem);
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      .landing .lede {
+        max-inline-size: 48rem;
+        margin: 0 0 1.4rem;
+        color: var(--muted);
+        font-size: 1.02rem;
+      }
+
+      .dropzone {
+        position: relative;
+        padding: clamp(1.6rem, 6vw, 3.2rem) 1.25rem;
+        border: 2px dashed var(--line);
+        border-radius: calc(var(--radius) + 4px);
+        background:
+          radial-gradient(circle at 50% 0%, rgb(93 102 219 / 9%), transparent 18rem),
+          var(--surface);
+        text-align: center;
+        transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      }
+
+      .dropzone:hover,
+      .dropzone.is-over {
+        border-color: var(--brand);
+        background-color: var(--brand-wash);
+      }
+
+      .drop-icon {
+        display: grid;
+        place-items: center;
+        inline-size: 3.4rem;
+        block-size: 3.4rem;
+        margin: 0 auto 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        color: var(--brand-dark);
+        background: var(--surface);
+        font-size: 1.5rem;
+      }
+
+      .drop-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 750;
+      }
+
+      .drop-sub {
+        margin: 0.3rem 0 0;
+        color: var(--muted);
+      }
+
+      .drop-path {
+        margin: 1rem auto 0;
+        max-inline-size: 36rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        overflow-wrap: anywhere;
+      }
+
+      .landing-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        justify-content: center;
+        margin-block-start: 1.1rem;
+      }
+
+      .loop-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 0.8rem;
+        margin-block-start: 1.3rem;
+      }
+
+      .loop-card {
+        padding: 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        font-size: 0.86rem;
+      }
+
+      .loop-card b {
+        display: block;
+        margin-block-end: 0.2rem;
+        color: var(--brand-dark);
+      }
+
+      .loop-card code {
+        font-size: 0.82em;
+      }
+
+      .landing-details {
+        margin-block-start: 1.2rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      .landing-details > summary {
+        font-weight: 700;
+      }
+
+      .landing-details ul {
+        margin-block: 0.6rem 0;
+        padding-inline-start: 1.2rem;
+      }
+
+      .landing-details li {
+        margin-block: 0.3rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      /* ---------- 加载后的布局 ---------- */
+
+      #app {
+        inline-size: min(1440px, 100%);
+        margin-inline: auto;
+        padding: 1.2rem 1.25rem 4rem;
+      }
+
+      .session-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+        justify-content: space-between;
+        padding-block-end: 0.8rem;
+      }
+
+      .session-head h1 {
+        margin: 0.45rem 0 0.2rem;
+        font-size: clamp(1.35rem, 2.6vw, 2rem);
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+      }
+
+      .session-sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+        overflow-wrap: anywhere;
+      }
+
+      .session-sub code {
+        font-size: 0.92em;
+      }
+
+      .session-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+
+      .chips-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        padding-block-end: 1rem;
+        border-block-end: 1px solid var(--line);
+      }
+
+      .meta-chip {
+        display: inline-flex;
+        gap: 0.3rem;
+        align-items: center;
+        max-inline-size: 100%;
+        padding: 0.18rem 0.55rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface);
+        font-size: 0.75rem;
+      }
+
+      .meta-chip code {
+        font-size: 0.92em;
+        overflow-wrap: anywhere;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 1.5rem;
+        align-items: start;
+        margin-block-start: 1rem;
+      }
+
+      .rail {
+        position: sticky;
+        inset-block-start: calc(var(--topbar) + 0.7rem);
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        max-block-size: calc(100vh - var(--topbar) - 1.4rem);
+        padding-inline-end: 0.2rem;
+        overflow: auto;
+        scrollbar-width: thin;
+      }
+
+      .panel {
+        padding: 0.85rem 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      .panel-title {
+        margin: 0 0 0.55rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.28rem 0.65rem;
+        margin: 0;
+        font-size: 0.78rem;
+      }
+
+      .kv dt {
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .kv dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .kv code {
+        font-size: 0.92em;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.42rem;
+      }
+
+      .stat {
+        padding: 0.38rem 0.5rem;
+        border-radius: 9px;
+        background: var(--surface-2);
+      }
+
+      .stat b {
+        display: block;
+        font-size: 0.92rem;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+
+      .stat span {
+        color: var(--muted);
+        font-size: 0.68rem;
+      }
+
+      .fineprint {
+        margin: 0.6rem 0 0;
+        color: var(--muted);
+        font-size: 0.72rem;
+        line-height: 1.55;
+      }
+
+      .bars {
+        display: grid;
+        gap: 0.42rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .bars li {
+        display: grid;
+        grid-template-columns: minmax(3.4rem, 5rem) minmax(0, 1fr) 1.6rem;
+        gap: 0.4rem;
+        align-items: center;
+        font-size: 0.75rem;
+      }
+
+      .bar-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bar-label code {
+        font-size: 0.92em;
+      }
+
+      .bar-err {
+        margin-inline-start: 0.25rem;
+        color: var(--red);
+        font-size: 0.65rem;
+      }
+
+      .bar-track {
+        block-size: 7px;
+        border-radius: 99px;
+        background: var(--surface-2);
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        display: block;
+        block-size: 100%;
+        border-radius: 99px;
+        background: linear-gradient(90deg, var(--teal), var(--brand));
+      }
+
+      .bar-num {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        text-align: end;
+      }
+
+      .round-nav {
+        display: grid;
+        gap: 0.18rem;
+        max-block-size: 38vh;
+        margin: 0;
+        padding: 0;
+        overflow: auto;
+        list-style: none;
+        scrollbar-width: thin;
+      }
+
+      .round-link {
+        display: grid;
+        grid-template-columns: 1.55rem minmax(0, 1fr);
+        gap: 0.05rem 0.4rem;
+        padding: 0.32rem 0.4rem;
+        border-radius: 8px;
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 0.76rem;
+      }
+
+      .round-link:hover,
+      .round-link.active {
+        background: var(--brand-wash);
+      }
+
+      .round-link .rn {
+        grid-row: span 2;
+        color: var(--brand-dark);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+      }
+
+      .round-link .rt {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .round-link .rm {
+        color: var(--muted);
+        font-size: 0.68rem;
+      }
+
+      .tips ul {
+        margin: 0;
+        padding-inline-start: 1.05rem;
+      }
+
+      .tips li {
+        margin-block: 0.3rem;
+        color: var(--muted);
+        font-size: 0.76rem;
+      }
+
+      .tips code {
+        font-size: 0.9em;
+      }
+
+      .main-col {
+        min-inline-size: 0;
+      }
+
+      .toolbar {
+        position: sticky;
+        z-index: 25;
+        inset-block-start: var(--topbar);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+        margin-block-end: 0.9rem;
+        padding: 0.5rem 0.55rem;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--page);
+        background: color-mix(in srgb, var(--page) 94%, transparent);
+        backdrop-filter: blur(10px);
+      }
+
+      .search-wrap {
+        display: flex;
+        flex: 1 1 15rem;
+        gap: 0.4rem;
+        align-items: center;
+        min-inline-size: 11rem;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+      }
+
+      .search-wrap > span[aria-hidden] {
+        color: var(--muted);
+        font-size: 1rem;
+      }
+
+      .search-wrap input {
+        flex: 1;
+        min-inline-size: 0;
+        border: 0;
+        outline: none;
+        color: var(--ink);
+        background: transparent;
+        font-size: 0.84rem;
+      }
+
+      .search-wrap input::placeholder {
+        color: var(--muted);
+      }
+
+      .search-count {
+        color: var(--muted);
+        font-size: 0.7rem;
+        white-space: nowrap;
+      }
+
+      .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+      }
+
+      .chip {
+        display: inline-flex;
+        gap: 0.28rem;
+        align-items: center;
+        padding: 0.18rem 0.5rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface);
+        font-size: 0.73rem;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .chip input {
+        inline-size: 0.8rem;
+        block-size: 0.8rem;
+        margin: 0;
+        accent-color: var(--brand);
+      }
+
+      .chip:has(input:checked) {
+        color: var(--ink);
+        border-color: var(--brand);
+        background: var(--brand-wash);
+      }
+
+      .tool-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+        margin-inline-start: auto;
+      }
+
+      .segmented {
+        display: inline-flex;
+        padding: 2px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface-2);
+      }
+
+      .segmented button {
+        padding: 0.25rem 0.6rem;
+        border: 0;
+        border-radius: 999px;
+        color: var(--muted);
+        background: none;
+        font-size: 0.74rem;
+        cursor: pointer;
+      }
+
+      .segmented button.active {
+        color: var(--ink);
+        background: var(--surface);
+        box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+      }
+
+      .warn-banner {
+        margin: 0 0 1rem;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid color-mix(in srgb, var(--orange) 40%, var(--line));
+        border-radius: 10px;
+        color: var(--orange);
+        background: var(--orange-wash);
+        font-size: 0.8rem;
+      }
+
+      /* ---------- 时间线 ---------- */
+
+      .timeline-wrap {
+        max-inline-size: 940px;
+      }
+
+      .startup {
+        margin-block-end: 2rem;
+      }
+
+      .round {
+        margin-block: 1.8rem 2.6rem;
+        scroll-margin-top: 5.2rem;
+      }
+
+      .round-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: baseline;
+        margin-block-end: 0.8rem;
+        padding-block: 0.2rem 0.55rem;
+        border-block-end: 1px solid var(--line);
+      }
+
+      .round-num {
+        color: var(--brand-dark);
+        font-size: 0.86rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+
+      .round-time {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+      }
+
+      .round-stats {
+        margin-inline-start: auto;
+        color: var(--muted);
+        font-size: 0.74rem;
+      }
+
+      .round-toggle {
+        padding: 0.05rem 0.4rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface);
+        font-size: 0.68rem;
+        cursor: pointer;
+      }
+
+      .round-toggle:hover {
+        color: var(--brand-dark);
+        border-color: var(--brand);
+      }
+
+      .round.is-collapsed .timeline {
+        display: none;
+      }
+
+      .round.is-collapsed .round-head {
+        margin-block-end: 0;
+      }
+
+      .timeline {
+        position: relative;
+        padding-inline-start: 1.3rem;
+      }
+
+      .timeline::before {
+        position: absolute;
+        inset-block: 0.6rem;
+        inset-inline-start: 0.28rem;
+        inline-size: 2px;
+        border-radius: 99px;
+        background: var(--line);
+        content: "";
+      }
+
+      .step {
+        --accent: var(--brand);
+        position: relative;
+        scroll-margin-top: 5.2rem;
+        margin-block: 0.65rem;
+        padding: 0.8rem 0.95rem;
+        border: 1px solid var(--line);
+        border-inline-start: 3px solid var(--accent);
+        border-radius: 13px;
+        background: var(--surface);
+        box-shadow: 0 1px 2px rgb(38 48 89 / 4%);
+      }
+
+      .step::before {
+        position: absolute;
+        inset-block-start: 1.15rem;
+        inset-inline-start: calc(-1.3rem + 0.28rem - 4px);
+        inline-size: 10px;
+        block-size: 10px;
+        border: 2px solid var(--page);
+        border-radius: 50%;
+        background: var(--accent);
+        content: "";
+      }
+
+      .step-user {
+        --accent: var(--brand);
+        background: linear-gradient(135deg, var(--brand-wash), var(--surface) 70%);
+      }
+
+      .step-assistant {
+        --accent: var(--violet);
+      }
+
+      .step-system {
+        --accent: var(--muted);
+      }
+
+      .step-event {
+        --accent: var(--orange);
+      }
+
+      .step-compaction {
+        --accent: var(--orange);
+        background: linear-gradient(135deg, var(--orange-wash), var(--surface) 65%);
+      }
+
+      .step-custom {
+        --accent: var(--teal);
+      }
+
+      .step-bash {
+        --accent: var(--teal);
+      }
+
+      .step-worktree {
+        --accent: var(--teal);
+      }
+
+      .step-head {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.38rem;
+        align-items: center;
+        margin-block-end: 0.35rem;
+        padding-inline-end: 3.2rem;
+      }
+
+      .step-head > .icon-btn {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-end: 0;
+        margin: 0;
+      }
+
+      .sys-card > details > summary.step-head {
+        padding-inline-end: 0;
+      }
+
+      summary.step-head {
+        margin-block-end: 0;
+      }
+
+      .avatar {
+        display: grid;
+        flex: none;
+        place-items: center;
+        inline-size: 1.55rem;
+        block-size: 1.55rem;
+        border-radius: 0.5rem;
+        color: var(--on-brand);
+        background: var(--accent);
+        font-size: 0.64rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .avatar.user {
+        background: var(--brand);
+      }
+
+      .avatar.ai {
+        background: var(--violet);
+      }
+
+      .avatar.sys {
+        color: var(--ink);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        font-size: 0.58rem;
+      }
+
+      .avatar.tool {
+        background: var(--teal);
+      }
+
+      .avatar.event {
+        background: var(--orange);
+      }
+
+      .step-title {
+        font-size: 0.86rem;
+        font-weight: 750;
+      }
+
+      .step-time {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.68rem;
+      }
+
+      .badge {
+        display: inline-flex;
+        gap: 0.22rem;
+        align-items: center;
+        max-inline-size: 100%;
+        padding: 0.03rem 0.4rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: var(--surface-2);
+        font-size: 0.66rem;
+        white-space: nowrap;
+      }
+
+      .badge.model {
+        font-family: var(--mono);
+      }
+
+      .badge.ok {
+        color: var(--green);
+        border-color: transparent;
+        background: var(--green-wash);
+      }
+
+      .badge.warn {
+        color: var(--orange);
+        border-color: transparent;
+        background: var(--orange-wash);
+      }
+
+      .badge.err {
+        color: var(--red);
+        border-color: transparent;
+        background: var(--red-wash);
+      }
+
+      .badge.metric {
+        font-family: var(--mono);
+        cursor: help;
+      }
+
+      .icon-btn {
+        margin-inline-start: auto;
+        padding: 0.1rem 0.35rem;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        color: var(--muted);
+        background: var(--surface);
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        line-height: 1.5;
+        cursor: pointer;
+      }
+
+      .icon-btn:hover {
+        color: var(--brand-dark);
+        border-color: var(--brand);
+      }
+
+      .step-body {
+        min-inline-size: 0;
+      }
+
+      .step-foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        margin-block-start: 0.55rem;
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .teach-note {
+        margin: 0.35rem 0 0.5rem;
+        padding: 0.45rem 0.6rem;
+        border-inline-start: 2px solid var(--line);
+        color: var(--muted);
+        background: var(--surface-2);
+        font-size: 0.75rem;
+        line-height: 1.6;
+      }
+
+      .teach-note code {
+        font-size: 0.92em;
+      }
+
+      .error-banner {
+        margin-block: 0.45rem;
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        color: var(--red);
+        background: var(--red-wash);
+        font-size: 0.8rem;
+        overflow-wrap: anywhere;
+      }
+
+      .entry-note {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.65rem;
+      }
+
+      /* ---------- markdown ---------- */
+
+      .md {
+        overflow-wrap: anywhere;
+        font-size: 0.9rem;
+        line-height: 1.72;
+      }
+
+      .md > :first-child {
+        margin-block-start: 0;
+      }
+
+      .md > :last-child {
+        margin-block-end: 0;
+      }
+
+      .md p {
+        margin-block: 0.5em;
+      }
+
+      .md h3,
+      .md h4,
+      .md h5,
+      .md h6 {
+        margin-block: 0.95em 0.35em;
+        line-height: 1.4;
+      }
+
+      .md h3 {
+        font-size: 1.05rem;
+      }
+
+      .md h4 {
+        font-size: 0.98rem;
+      }
+
+      .md h5,
+      .md h6 {
+        font-size: 0.92rem;
+      }
+
+      .md ul,
+      .md ol {
+        margin-block: 0.45em;
+        padding-inline-start: 1.4em;
+      }
+
+      .md li {
+        margin-block: 0.18em;
+      }
+
+      .md code {
+        padding: 0.06em 0.28em;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--surface-2);
+        font-size: 0.87em;
+      }
+
+      .md pre {
+        margin-block: 0.7em;
+        padding: 0.7rem 0.8rem;
+        border-radius: 10px;
+        background: var(--code);
+        color: var(--code-ink);
+        font-size: 0.8rem;
+        line-height: 1.55;
+        overflow: auto;
+      }
+
+      .md pre code {
+        padding: 0;
+        border: 0;
+        background: none;
+        font-size: inherit;
+      }
+
+      .md blockquote {
+        margin-block: 0.6em;
+        padding-inline-start: 0.8rem;
+        border-inline-start: 3px solid var(--line);
+        color: var(--muted);
+      }
+
+      .md table {
+        inline-size: 100%;
+        margin-block: 0.6em;
+        border-collapse: collapse;
+        font-size: 0.84em;
+      }
+
+      .md th,
+      .md td {
+        padding: 0.3em 0.55em;
+        border: 1px solid var(--line);
+        text-align: start;
+        vertical-align: top;
+      }
+
+      .md th {
+        background: var(--surface-2);
+      }
+
+      .md hr {
+        margin-block: 1em;
+        border: 0;
+        border-block-start: 1px solid var(--line);
+      }
+
+      .md a {
+        overflow-wrap: anywhere;
+      }
+
+      .md-table-wrap {
+        overflow-x: auto;
+      }
+
+      /* ---------- 详情 / 系统提示 / 工具 ---------- */
+
+      details > summary {
+        list-style: none;
+        cursor: pointer;
+      }
+
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details > summary::marker {
+        content: "";
+      }
+
+      details > summary::before {
+        display: inline-block;
+        margin-inline-end: 0.35rem;
+        color: var(--muted);
+        font-size: 0.78em;
+        content: "▸";
+        transition: transform 0.12s;
+      }
+
+      details[open] > summary::before {
+        content: "▾";
+      }
+
+      .summary-hint {
+        margin-inline-start: auto;
+        color: var(--muted);
+        font-size: 0.68rem;
+      }
+
+      .sys-sections {
+        display: grid;
+        gap: 0.35rem;
+        margin-block-start: 0.5rem;
+      }
+
+      .sys-section {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+      }
+
+      .sys-section > summary {
+        display: flex;
+        gap: 0.45rem;
+        align-items: baseline;
+        padding: 0.4rem 0.55rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .sys-section > summary .muted {
+        margin-inline-start: auto;
+        font-size: 0.68rem;
+        font-weight: 400;
+      }
+
+      .sys-text {
+        margin: 0;
+        padding: 0.65rem 0.7rem;
+        border-block-start: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--surface-2);
+        font-size: 0.76rem;
+        line-height: 1.62;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-block-size: 26rem;
+        overflow: auto;
+      }
+
+      .tool-defs {
+        margin-block-start: 0.55rem;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+      }
+
+      .tool-defs > summary {
+        padding: 0.45rem 0.6rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .tool-def-list {
+        display: grid;
+        gap: 0.3rem;
+        padding: 0 0.55rem 0.55rem;
+      }
+
+      .tool-def {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .tool-def > summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem 0.5rem;
+        align-items: baseline;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+      }
+
+      .tool-def > summary span {
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .tool-def pre {
+        margin: 0;
+        padding: 0.55rem;
+        border-block-start: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--surface-2);
+        font-size: 0.72rem;
+        line-height: 1.5;
+        max-block-size: 20rem;
+        overflow: auto;
+      }
+
+      .injected-block {
+        margin-block: 0.5rem;
+        border: 1px dashed var(--line);
+        border-radius: 9px;
+        background: var(--surface-2);
+      }
+
+      .injected-block > summary {
+        padding: 0.42rem 0.55rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .injected-block > .sys-text {
+        max-block-size: 24rem;
+      }
+
+      .thinking-block {
+        margin-block: 0.4rem 0.55rem;
+        padding: 0.35rem 0.55rem;
+        border: 1px dashed var(--line);
+        border-radius: 9px;
+        background: var(--surface-2);
+      }
+
+      .thinking-block > summary {
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .thinking-text {
+        margin-block-start: 0.35rem;
+        padding-block-start: 0.4rem;
+        border-block-start: 1px dashed var(--line);
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .tool-call {
+        margin-block: 0.55rem;
+        border: 1px solid var(--line);
+        border-inline-start: 3px solid var(--teal);
+        border-radius: 10px;
+        background: var(--surface-2);
+      }
+
+      .tool-call.is-error {
+        border-inline-start-color: var(--red);
+      }
+
+      .tool-call.is-pending {
+        border-inline-start-color: var(--orange);
+      }
+
+      .tool-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+        padding: 0.42rem 0.55rem;
+      }
+
+      .tool-icon {
+        display: grid;
+        flex: none;
+        place-items: center;
+        inline-size: 1.35rem;
+        block-size: 1.35rem;
+        border-radius: 6px;
+        color: var(--code-ink);
+        background: var(--teal);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      .tool-call.is-error .tool-icon {
+        background: var(--red);
+      }
+
+      .tool-name {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .tool-summary {
+        flex: 1 1 12rem;
+        min-inline-size: 0;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tool-status {
+        padding: 0.02rem 0.38rem;
+        border-radius: 999px;
+        color: var(--green);
+        background: var(--green-wash);
+        font-size: 0.65rem;
+        white-space: nowrap;
+      }
+
+      .tool-status.err {
+        color: var(--red);
+        background: var(--red-wash);
+      }
+
+      .tool-status.pending {
+        color: var(--orange);
+        background: var(--orange-wash);
+      }
+
+      .tool-body {
+        padding: 0 0.55rem 0.55rem;
+      }
+
+      .tool-path {
+        margin-block: 0.15rem 0.35rem;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        overflow-wrap: anywhere;
+      }
+
+      .tool-body pre,
+      .cmd,
+      .tool-output {
+        margin: 0.35rem 0;
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        color: var(--code-ink);
+        background: var(--code);
+        font-size: 0.75rem;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-block-size: 26rem;
+        overflow: auto;
+      }
+
+      .cmd {
+        color: #d7f7e9;
+      }
+
+      .cmd-prompt {
+        color: #7fd8cc;
+        user-select: none;
+      }
+
+      .tool-empty {
+        margin-block: 0.3rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-style: italic;
+      }
+
+      .tool-output-wrap > summary {
+        padding: 0.25rem 0;
+        color: var(--brand-dark);
+        font-size: 0.72rem;
+      }
+
+      .tool-args {
+        margin-block-start: 0.3rem;
+      }
+
+      .tool-args > summary {
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .tool-args pre {
+        margin-block-start: 0.25rem;
+        max-block-size: 18rem;
+      }
+
+      .diff {
+        margin: 0.35rem 0;
+        padding: 0.4rem 0;
+        border-radius: 8px;
+        color: var(--code-ink);
+        background: var(--code);
+        font-family: var(--mono);
+        font-size: 0.73rem;
+        line-height: 1.5;
+        overflow: auto;
+        max-block-size: 26rem;
+      }
+
+      .diff-line {
+        display: block;
+        padding-inline: 0.65rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .diff-line.add {
+        color: #b5f5c8;
+        background: rgb(46 160 67 / 16%);
+      }
+
+      .diff-line.del {
+        color: #ffc4c9;
+        background: rgb(248 81 73 / 16%);
+      }
+
+      .diff-line.hunk {
+        color: #9fb4ff;
+        background: rgb(93 102 219 / 18%);
+      }
+
+      .diff-line.meta {
+        color: #98a2c0;
+      }
+
+      .edit-block {
+        margin-block: 0.4rem;
+      }
+
+      .edit-label {
+        color: var(--muted);
+        font-size: 0.68rem;
+      }
+
+      .tool-img {
+        display: block;
+        max-inline-size: 100%;
+        max-block-size: 22rem;
+        margin-block: 0.4rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .compaction-summary {
+        margin-block-start: 0.5rem;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+      }
+
+      .compaction-summary > summary {
+        padding: 0.4rem 0.55rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .compaction-summary > .md {
+        padding: 0.55rem 0.65rem;
+        border-block-start: 1px solid var(--line);
+      }
+
+      .misc-json {
+        margin-block-start: 0.4rem;
+      }
+
+      .misc-json > summary {
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .misc-json pre {
+        margin-block-start: 0.25rem;
+        padding: 0.55rem;
+        border-radius: 8px;
+        color: var(--code-ink);
+        background: var(--code);
+        font-size: 0.72rem;
+        line-height: 1.5;
+        max-block-size: 22rem;
+        overflow: auto;
+      }
+
+      .empty {
+        padding: 1.2rem;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .is-hidden {
+        display: none !important;
+      }
+
+      #app.hide-thinking .thinking-block,
+      #app.hide-tool-output .tool-body,
+      #app.hide-system .sys-card,
+      #app.hide-events .event-step,
+      #app.hide-events .step-custom {
+        display: none;
+      }
+
+      /* ---------- 原始 JSONL 视图 ---------- */
+
+      .raw-view {
+        max-inline-size: 980px;
+      }
+
+      .raw-list {
+        display: grid;
+        gap: 0.28rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .raw-row {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .raw-row > summary {
+        display: grid;
+        grid-template-columns: 3rem 8.2rem 6.5rem minmax(0, 1fr) auto;
+        gap: 0.5rem;
+        align-items: baseline;
+        padding: 0.35rem 0.55rem;
+        font-size: 0.75rem;
+        overflow: hidden;
+      }
+
+      .raw-row.is-header > summary {
+        background: var(--brand-wash);
+      }
+
+      .raw-row > summary::before {
+        display: none;
+      }
+
+      .ln,
+      .raw-id,
+      .raw-time {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.68rem;
+      }
+
+      .raw-type {
+        color: var(--brand-dark);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      .raw-type,
+      .raw-id {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .raw-sum {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+      }
+
+      .raw-json {
+        margin: 0;
+        padding: 0.6rem 0.75rem;
+        border-block-start: 1px solid var(--line);
+        color: var(--code-ink);
+        background: var(--code);
+        font-size: 0.72rem;
+        line-height: 1.55;
+        max-block-size: 32rem;
+        overflow: auto;
+      }
+
+      /* ---------- 弹层 / 拖拽 ---------- */
+
+      .raw-dialog {
+        inline-size: min(960px, 92vw);
+        max-block-size: 88vh;
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        color: var(--ink);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .raw-dialog::backdrop {
+        background: rgb(10 14 26 / 62%);
+      }
+
+      .raw-dialog-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.65rem 0.8rem;
+        border-block-end: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .raw-dialog-bar b {
+        display: block;
+        font-size: 0.9rem;
+      }
+
+      .raw-dialog-bar .muted {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.68rem;
+      }
+
+      .raw-dialog-actions {
+        display: flex;
+        gap: 0.35rem;
+      }
+
+      #raw-pre {
+        margin: 0;
+        padding: 0.8rem 0.9rem;
+        color: var(--code-ink);
+        background: var(--code);
+        font-size: 0.76rem;
+        line-height: 1.55;
+        max-block-size: calc(88vh - 4rem);
+        overflow: auto;
+      }
+
+      .drop-overlay {
+        position: fixed;
+        z-index: 100;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgb(20 25 45 / 55%);
+        backdrop-filter: blur(3px);
+        pointer-events: none;
+      }
+
+      .drop-overlay-inner {
+        padding: 1.2rem 1.6rem;
+        border: 2px dashed var(--brand);
+        border-radius: 18px;
+        color: var(--ink);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      #toast {
+        position: fixed;
+        z-index: 120;
+        inset-block-end: 1.2rem;
+        inset-inline: 0;
+        display: flex;
+        justify-content: center;
+        pointer-events: none;
+      }
+
+      #toast span {
+        max-inline-size: min(90vw, 36rem);
+        padding: 0.5rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        font-size: 0.8rem;
+        opacity: 0;
+        transform: translateY(0.4rem);
+        transition: opacity 0.16s, transform 0.16s;
+      }
+
+      #toast.show span {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .session-select {
+        max-inline-size: 16rem;
+        padding: 0.3rem 0.5rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        background: var(--surface);
+        font-size: 0.78rem;
+      }
+
+      @media (max-width: 1080px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          max-block-size: none;
+          overflow: visible;
+        }
+
+        .round-nav-panel {
+          grid-column: span 2;
+        }
+
+        .toolbar {
+          position: static;
+        }
+
+        .main-col {
+          margin-block-start: 0.4rem;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .topbar-sub,
+        .privacy {
+          display: none;
+        }
+
+        .session-select {
+          max-inline-size: 10rem;
+        }
+
+        .topbar-inner {
+          padding-inline: 0.8rem;
+        }
+
+        #app {
+          padding-inline: 0.8rem;
+        }
+
+        .rail {
+          grid-template-columns: 1fr;
+        }
+
+        .round-nav-panel {
+          grid-column: auto;
+        }
+
+        .timeline {
+          padding-inline-start: 0.95rem;
+        }
+
+        .timeline::before {
+          inset-inline-start: 0.12rem;
+        }
+
+        .step {
+          padding: 0.7rem 0.75rem;
+        }
+
+        .step::before {
+          inset-inline-start: calc(-0.95rem + 0.12rem - 4px);
+        }
+
+        .raw-row > summary {
+          grid-template-columns: 2.6rem minmax(0, 1fr) auto;
+        }
+
+        .raw-id,
+        .raw-sum {
+          display: none;
+        }
+
+        .raw-time {
+          font-size: 0.64rem;
+        }
+
+        .round-stats {
+          inline-size: 100%;
+          margin-inline-start: 0;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .brand span:not(.brand-mark) {
+          display: none;
+        }
+
+        .topbar-inner {
+          gap: 0.4rem;
+        }
+
+        .btn.small {
+          padding-inline: 0.5rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      @media print {
+        .topbar,
+        .rail,
+        .toolbar,
+        .icon-btn,
+        .drop-overlay,
+        #toast {
+          display: none !important;
+        }
+
+        .layout {
+          display: block;
+        }
+
+        .step,
+        .tool-call {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">π</span>
+          <span>Pi Agent 入门实验室</span>
+        </a>
+        <span class="topbar-sub">会话回放</span>
+        <span class="topbar-spacer"></span>
+        <button class="btn small" type="button" data-action="pick">打开文件</button>
+        <button class="btn small" type="button" data-action="demo">内置示例</button>
+        <select id="session-select" class="session-select" aria-label="切换已加载的会话" hidden></select>
+        <span class="privacy" title="文件只在当前浏览器内存里解析，不会上传到任何服务器">本地解析 · 不上传</span>
+      </div>
+    </header>
+
+    <input id="file-input" type="file" accept=".jsonl,.ndjson,application/x-ndjson,text/plain" multiple hidden>
+    <input id="folder-input" type="file" webkitdirectory multiple hidden>
+
+    <main id="landing" class="landing">
+      <span class="eyebrow">学习工具 · 本地运行</span>
+      <h1>把一次 Agent 会话，摊开来看</h1>
+      <p class="lede">
+        导入 pi 写下的 <code>.jsonl</code> 会话文件，按真实顺序重放：
+        用户输入 → 模型思考 → 工具调用 → 工具结果 → 最终回答。
+        时间线负责“看懂过程”，「原始 JSONL」视图负责“对照格式”。
+      </p>
+
+      <div class="dropzone" id="dropzone">
+        <div class="drop-icon" aria-hidden="true">⇩</div>
+        <p class="drop-title">把会话 .jsonl 拖到这里</p>
+        <p class="drop-sub">
+          或者
+          <button class="link-btn" type="button" data-action="pick">从文件管理器选择</button>
+          ，可一次选多个
+        </p>
+        <p class="drop-path">
+          默认位置：<code>~/.pi/agent/sessions/&lt;项目目录&gt;/&lt;时间戳&gt;_&lt;id&gt;.jsonl</code><br>
+          例如 <code>~/.pi/agent/sessions/--home-code-pi-agent-learning--/</code>
+        </p>
+      </div>
+
+      <div class="landing-actions">
+        <button class="btn primary" type="button" data-action="pick">选择文件</button>
+        <button class="btn" type="button" data-action="pick-folder">导入整个 sessions 文件夹</button>
+        <button class="btn" type="button" data-action="demo">先看内置示例</button>
+      </div>
+
+      <div class="loop-cards" aria-label="怎么读一次会话">
+        <div class="loop-card">
+          <b>01 · 用户输入</b>
+          一条 <code>user</code> message 开启一轮。它是这一轮所有模型请求和工具执行的起点。
+        </div>
+        <div class="loop-card">
+          <b>02 · 模型响应</b>
+          assistant 的 <code>content</code> 是块数组：<code>thinking</code>、<code>text</code>、<code>toolCall</code> 按顺序排列。
+        </div>
+        <div class="loop-card">
+          <b>03 · 工具执行</b>
+          模型只“提出”调用；工具在本机执行，结果另存为一条 <code>toolResult</code> message。
+        </div>
+        <div class="loop-card">
+          <b>04 · 继续或收尾</b>
+          <code>stopReason: "toolUse"</code> 表示还要再请求模型；<code>"stop"</code> 表示这一轮说完了。
+        </div>
+      </div>
+
+      <details class="landing-details">
+        <summary>这个页面会解析哪些字段？</summary>
+        <ul>
+          <li><code>session</code> 头：会话 id、cwd、版本、开始时间。</li>
+          <li><code>message</code> 的四种角色：<code>system</code>、<code>user</code>、<code>assistant</code>、<code>toolResult</code>。</li>
+          <li>assistant 的 <code>usage</code>、<code>durationMs</code>、<code>stopReason</code>；toolResult 的 <code>isError</code>、<code>durationMs</code>、<code>details.diff</code>。</li>
+          <li>会话事件：<code>model_change</code>、<code>thinking_level_change</code>、<code>compaction</code>、<code>branch_summary</code>、<code>custom</code>、<code>custom_message</code>、<code>context_edit</code>、<code>label</code>、<code>session_info</code>、<code>usage</code>。</li>
+          <li>文件里的 <code>parentId</code> 会连成树；本页按文件顺序展示，并对“不是上一条”的节点标出分支。</li>
+        </ul>
+      </details>
+    </main>
+
+    <div id="app" hidden></div>
+
+    <dialog id="raw-dialog" class="raw-dialog">
+      <div class="raw-dialog-bar">
+        <div>
+          <b id="raw-title">原始 entry</b>
+          <span id="raw-sub" class="muted"></span>
+        </div>
+        <div class="raw-dialog-actions">
+          <button class="btn small" type="button" data-action="copy-raw">复制</button>
+          <button class="btn small" type="button" data-action="close-raw">关闭</button>
+        </div>
+      </div>
+      <pre id="raw-pre" tabindex="0"></pre>
+    </dialog>
+
+    <div id="drop-overlay" class="drop-overlay" hidden>
+      <div class="drop-overlay-inner">松开鼠标，加载会话文件</div>
+    </div>
+
+    <div id="toast" role="status" aria-live="polite"><span></span></div>
+    <p id="load-status" class="muted" aria-live="polite" style="position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%)"></p>
+
+    <script>
+      (() => {
+        "use strict";
+
+        // ============================================================
+        // 小工具
+        // ============================================================
+
+        const $ = (sel, root = document) => root.querySelector(sel);
+        const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+        const esc = (value) =>
+          String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[ch]);
+        const num = (value) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+        const clampText = (value, max) => {
+          const text = String(value ?? "");
+          return text.length > max ? `${text.slice(0, max)}…` : text;
+        };
+        const fmtNum = (value) => num(value).toLocaleString("en-US");
+        const fmtBytes = (value) => {
+          const n = num(value);
+          if (n < 1024) return `${n} B`;
+          if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+          return `${(n / 1024 / 1024).toFixed(1)} MB`;
+        };
+        const fmtDuration = (ms) => {
+          if (typeof ms !== "number" || !Number.isFinite(ms)) return "—";
+          const n = Math.max(0, ms);
+          if (n < 1000) return `${Math.round(n)}ms`;
+          if (n < 60_000) return `${(n / 1000).toFixed(1)}s`;
+          const minutes = Math.floor(n / 60_000);
+          const seconds = Math.round((n % 60_000) / 1000);
+          return `${minutes}m ${seconds}s`;
+        };
+        const fmtCost = (value) => {
+          const n = num(value);
+          if (!n) return "$0";
+          if (n < 0.0001) return "<$0.0001";
+          return `$${n < 0.01 ? n.toFixed(4) : n.toFixed(3)}`;
+        };
+        const fmtTime = (value) => {
+          const t = typeof value === "number" ? value : Date.parse(value);
+          if (!Number.isFinite(t)) return "—";
+          return new Date(t).toLocaleTimeString("zh-CN", { hour12: false });
+        };
+        const fmtDate = (value) => {
+          const t = typeof value === "number" ? value : Date.parse(value);
+          if (!Number.isFinite(t)) return "—";
+          const d = new Date(t);
+          const pad = (x) => String(x).padStart(2, "0");
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        };
+        const stripAnsi = (value) =>
+          String(value ?? "")
+            .replace(/\u001b\][^\u0007]*(?:\u0007|\u001b\\)/g, "")
+            .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
+            .replace(/\u001b[PX^_].*?\u001b\\/gs, "");
+        const shortenPath = (value) => {
+          const text = String(value ?? "");
+          if (text.length <= 56) return text;
+          const parts = text.split("/");
+          return parts.length > 3 ? `…/${parts.slice(-2).join("/")}` : `…${text.slice(-52)}`;
+        };
+        const pretty = (value, truncate = true) =>
+          JSON.stringify(
+            value,
+            (key, val) => {
+              // 这两个字段是页面解析时临时加的，不属于会话文件本身。
+              if (key === "_idx" || key === "_line") return undefined;
+              if (truncate && typeof val === "string" && val.length > 2000) {
+                return `${val.slice(0, 2000)}…[已截断 ${fmtNum(val.length - 2000)} 字符]`;
+              }
+              return val;
+            },
+            2,
+          );
+        const safeString = (value) => {
+          if (typeof value === "string") return value;
+          try {
+            return JSON.stringify(value);
+          } catch {
+            return String(value);
+          }
+        };
+        const cleanTitle = (value) =>
+          String(value ?? "")
+            .replace(/<[^>]{1,200}>/g, " ")
+            .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+            .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+            .replace(/\[(image|图片)\]/gi, " ")
+            .replace(/[#*_`>]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        // 用户消息里可能先塞了一整段 <skill>…</skill>，标题取它后面的真实请求。
+        const titleFromUserText = (value) => {
+          const text = String(value ?? "");
+          const matches = [...text.matchAll(/<\/skill>\s*/gi)];
+          if (matches.length) {
+            const tail = text.slice(matches[matches.length - 1].index + matches[matches.length - 1][0].length);
+            const cleanedTail = cleanTitle(tail);
+            if (cleanedTail) return cleanedTail;
+          }
+          return cleanTitle(text);
+        };
+
+        const entryTime = (entry) => {
+          if (entry && entry.message && typeof entry.message.timestamp === "number") return entry.message.timestamp;
+          const parsed = Date.parse(entry && entry.timestamp);
+          return Number.isFinite(parsed) ? parsed : NaN;
+        };
+
+        const textOfContent = (content) => {
+          if (content == null) return "";
+          if (typeof content === "string") return content;
+          if (!Array.isArray(content)) return safeString(content);
+          return content
+            .map((block) => {
+              if (!block || typeof block !== "object") return safeString(block);
+              if (block.type === "text") return block.text || "";
+              if (block.type === "thinking") return block.thinking || "";
+              if (block.type === "toolCall") return `[tool ${block.name}] ${safeString(block.arguments)}`;
+              if (block.type === "image") return "[image]";
+              return safeString(block);
+            })
+            .join("\n");
+        };
+
+        const resultText = (message) => {
+          if (!message) return "";
+          if (typeof message.content === "string") return message.content;
+          if (!Array.isArray(message.content)) return "";
+          return message.content
+            .filter((block) => block && block.type === "text")
+            .map((block) => block.text || "")
+            .join("\n");
+        };
+
+        const usageCost = (usage) => {
+          if (!usage) return 0;
+          const cost = usage.cost || {};
+          const total = num(cost.total);
+          if (total) return total;
+          return num(cost.input) + num(cost.output) + num(cost.cacheRead) + num(cost.cacheWrite);
+        };
+
+        const stopInfo = {
+          stop: ["完成", "ok"],
+          toolUse: ["调用工具", ""],
+          length: ["达到长度上限", "warn"],
+          error: ["出错", "err"],
+          aborted: ["已中止", "warn"],
+          deferred: ["异步挂起", "warn"],
+          pending: ["进行中", "warn"],
+        };
+
+        // ============================================================
+        // Markdown（先转义，再解析；不执行原始 HTML）
+        // ============================================================
+
+        const inlineMd = (source) => {
+          let text = esc(source);
+          const codes = [];
+          text = text.replace(/`([^`]+)`/g, (_match, code) => {
+            codes.push(`<code>${code}</code>`);
+            return `\uE000${codes.length - 1}\uE001`;
+          });
+
+          text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (match, alt, url) => {
+            const href = safeUrl(url);
+            return href
+              ? `<a href="${href}" target="_blank" rel="noreferrer noopener">${alt || "图片"}</a>`
+              : alt || match;
+          });
+          text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (match, label, url) => {
+            const href = safeUrl(url);
+            return href
+              ? `<a href="${href}" target="_blank" rel="noreferrer noopener">${label}</a>`
+              : label;
+          });
+
+          text = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+          text = text.replace(/(^|[^\w])__([^_]+)__/g, "$1<strong>$2</strong>");
+          text = text.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+          text = text.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+
+          return text.replace(/\uE000(\d+)\uE001/g, (_match, index) => codes[Number(index)] || "");
+        };
+
+        const safeUrl = (url) => {
+          const decoded = String(url).replace(/&amp;/g, "&");
+          return /^(https?:\/\/|mailto:|#|\/|\.{0,2}\/)/i.test(decoded) ? url : null;
+        };
+
+        const splitCells = (line) => {
+          let text = line.trim();
+          if (text.startsWith("|")) text = text.slice(1);
+          if (text.endsWith("|")) text = text.slice(0, -1);
+          return text.split("|").map((cell) => cell.trim());
+        };
+
+        const isSeparatorRow = (line) => {
+          if (!line || !line.includes("-")) return false;
+          const cells = splitCells(line);
+          return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+        };
+
+        const md = (source) => {
+          if (source == null) return "";
+          const lines = String(source).replace(/\r\n?/g, "\n").split("\n");
+          const out = [];
+          let paragraph = [];
+          let i = 0;
+
+          const flushParagraph = () => {
+            if (!paragraph.length) return;
+            out.push(`<p>${paragraph.map(inlineMd).join("<br>")}</p>`);
+            paragraph = [];
+          };
+
+          while (i < lines.length) {
+            const line = lines[i];
+
+            const fence = line.match(/^\s*(```+|~~~+)\s*([\w+#.-]*)\s*$/);
+            if (fence) {
+              flushParagraph();
+              const marker = fence[1][0];
+              const lang = fence[2] || "";
+              const buffer = [];
+              i += 1;
+              const closeRe = new RegExp(`^\\s*${marker}{3,}\\s*$`);
+              while (i < lines.length && !closeRe.test(lines[i])) {
+                buffer.push(lines[i]);
+                i += 1;
+              }
+              i += 1;
+              out.push(
+                `<pre class="md-code"${lang ? ` data-lang="${esc(lang)}"` : ""}><code>${esc(buffer.join("\n"))}</code></pre>`,
+              );
+              continue;
+            }
+
+            const heading = line.match(/^(#{1,6})\s+(.*)$/);
+            if (heading) {
+              flushParagraph();
+              const level = Math.min(heading[1].length + 2, 6);
+              out.push(`<h${level}>${inlineMd(heading[2])}</h${level}>`);
+              i += 1;
+              continue;
+            }
+
+            if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) {
+              flushParagraph();
+              out.push("<hr>");
+              i += 1;
+              continue;
+            }
+
+            if (/^\s*>\s?/.test(line)) {
+              flushParagraph();
+              const buffer = [];
+              while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+                buffer.push(lines[i].replace(/^\s*>\s?/, ""));
+                i += 1;
+              }
+              out.push(`<blockquote>${md(buffer.join("\n"))}</blockquote>`);
+              continue;
+            }
+
+            if (line.includes("|") && i + 1 < lines.length && isSeparatorRow(lines[i + 1])) {
+              flushParagraph();
+              const head = splitCells(line);
+              const aligns = splitCells(lines[i + 1]).map((cell) =>
+                cell.startsWith(":") && cell.endsWith(":") ? "center" : cell.endsWith(":") ? "right" : "left",
+              );
+              i += 2;
+              const rows = [];
+              while (i < lines.length && lines[i].includes("|") && lines[i].trim()) {
+                rows.push(splitCells(lines[i]));
+                i += 1;
+              }
+              out.push(
+                `<div class="md-table-wrap"><table><thead><tr>${head
+                  .map(
+                    (cell, index) =>
+                      `<th style="text-align:${aligns[index] || "left"}">${inlineMd(cell)}</th>`,
+                  )
+                  .join("")}</tr></thead><tbody>${rows
+                  .map(
+                    (row) =>
+                      `<tr>${row
+                        .map(
+                          (cell, index) =>
+                            `<td style="text-align:${aligns[index] || "left"}">${inlineMd(cell)}</td>`,
+                        )
+                        .join("")}</tr>`,
+                  )
+                  .join("")}</tbody></table></div>`,
+              );
+              continue;
+            }
+
+            const listItem = line.match(/^\s*([-*+]|\d+[.)])\s+(.*)$/);
+            if (listItem) {
+              flushParagraph();
+              const ordered = /^\s*\d+[.)]\s+/.test(line);
+              const items = [];
+              while (i < lines.length) {
+                const match = lines[i].match(/^\s*([-*+]|\d+[.)])\s+(.*)$/);
+                if (!match) break;
+                items.push(`<li>${inlineMd(match[2])}</li>`);
+                i += 1;
+              }
+              out.push(ordered ? `<ol>${items.join("")}</ol>` : `<ul>${items.join("")}</ul>`);
+              continue;
+            }
+
+            if (!line.trim()) {
+              flushParagraph();
+              i += 1;
+              continue;
+            }
+
+            paragraph.push(line.replace(/^\s+/, ""));
+            i += 1;
+          }
+
+          flushParagraph();
+          return out.join("\n");
+        };
+
+        // ============================================================
+        // 解析会话
+        // ============================================================
+
+        const parseSession = (text) => {
+          const trimmed = text.trim();
+          if (!trimmed) throw new Error("文件是空的");
+
+          // 兼容 pi 导出的数组中转格式，以及 { header, entries } 格式。
+          if (trimmed.startsWith("[")) {
+            const doc = JSON.parse(trimmed);
+            if (!Array.isArray(doc)) throw new Error("JSON 顶层不是数组");
+            return splitHeader(doc, false);
+          }
+          if (trimmed.startsWith("{")) {
+            let doc;
+            try {
+              doc = JSON.parse(trimmed);
+            } catch {
+              doc = null;
+            }
+            if (doc && typeof doc === "object" && Array.isArray(doc.entries)) {
+              const header = normalizeHeader(doc.header || doc.session || null) || splitHeader(doc.entries, false).header;
+              return { header, entries: doc.entries.filter(isObject), errors: [], isJsonl: false };
+            }
+          }
+
+          const lines = text.split(/\r?\n/);
+          const entries = [];
+          const errors = [];
+          let header = null;
+
+          lines.forEach((line, lineIndex) => {
+            const raw = line.trim();
+            if (!raw) return;
+            try {
+              const entry = JSON.parse(raw);
+              if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+                throw new Error("不是 JSON 对象");
+              }
+              entry._line = lineIndex + 1;
+              if (entry.type === "session") {
+                header = header || entry;
+              } else {
+                entries.push(entry);
+              }
+            } catch (error) {
+              errors.push({ line: lineIndex + 1, message: error.message });
+            }
+          });
+
+          if (!header && !entries.length) {
+            const first = errors[0];
+            throw new Error(
+              first ? `不是有效的 JSONL：第 ${first.line} 行解析失败（${first.message}）` : "没有可解析的记录",
+            );
+          }
+
+          return { header, entries, errors, isJsonl: true };
+        };
+
+        const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
+
+        const normalizeHeader = (value) => (isObject(value) ? value : null);
+
+        const splitHeader = (entries, isJsonl) => {
+          let header = null;
+          const rest = [];
+          for (const entry of entries) {
+            if (!isObject(entry)) continue;
+            if (entry.type === "session") {
+              header = header || entry;
+            } else {
+              rest.push(entry);
+            }
+          }
+          return { header, entries: rest, errors: [], isJsonl };
+        };
+
+        // 有些旧文件直接把 message 写在顶层；这里包一层。
+        const normalizeEntries = (entries) => {
+          const result = [];
+          entries.forEach((entry, index) => {
+            if (!isObject(entry)) return;
+            if (!entry.type && entry.role) {
+              result.push({
+                type: "message",
+                id: entry.id || `legacy-${index}`,
+                parentId: entry.parentId ?? null,
+                timestamp: entry.timestamp || "",
+                message: entry,
+              });
+              return;
+            }
+            if (entry.type) result.push(entry);
+          });
+          return result;
+        };
+
+        const makeSession = (parsed, filename, demo = false) => {
+          const header = normalizeHeader(parsed.header) || {};
+          const entries = normalizeEntries(parsed.entries || []);
+          const looksLikeSession =
+            header.type === "session" ||
+            entries.some(
+              (entry) =>
+                entry &&
+                (entry.type === "message" ||
+                  entry.type === "custom" ||
+                  entry.type === "custom_message" ||
+                  entry.type === "model_change" ||
+                  entry.type === "compaction" ||
+                  entry.type === "compaction_summary"),
+            );
+          if (!looksLikeSession) {
+            throw new Error("不像 pi 的会话文件：没有 session 头，也没有可识别的 message / 事件 entry");
+          }
+          const session = {
+            key: header.id || `file:${filename}`,
+            filename,
+            demo,
+            header,
+            headerIsReal: !!parsed.header,
+            entries,
+            errors: parsed.errors || [],
+            isJsonl: parsed.isJsonl !== false,
+            analysis: null,
+          };
+          session.analysis = analyzeSession(session);
+          return session;
+        };
+
+        // ============================================================
+        // 分析：统计 + 把 entry 排成“轮次”
+        // ============================================================
+
+        const analyzeSession = (session) => {
+          const entries = session.entries;
+          const header = session.header || {};
+
+          const byId = new Map();
+          const callsById = new Map();
+          const resultsById = new Map();
+          const toolErrors = new Map();
+          const toolUsage = new Map();
+          const models = new Set();
+          const branchIds = new Set();
+
+          let input = 0;
+          let output = 0;
+          let cacheRead = 0;
+          let cacheWrite = 0;
+          let reasoning = 0;
+          let cost = 0;
+          let modelMs = 0;
+          let calls = 0;
+          let toolCalls = 0;
+          let toolErrorCount = 0;
+          let thinkingLevel = "";
+          let name = "";
+
+          entries.forEach((entry, index) => entry && (entry._idx = index));
+
+          let previousId = null;
+          for (const entry of entries) {
+            if (!entry) continue;
+            if (entry.id) byId.set(entry.id, entry);
+            if (entry.parentId && previousId && entry.parentId !== previousId) branchIds.add(entry.id);
+            if (entry.id) previousId = entry.id;
+          }
+
+          for (const entry of entries) {
+            if (!entry) continue;
+
+            if (entry.type === "model_change") {
+              if (entry.provider || entry.modelId) models.add(`${entry.provider || "?"}/${entry.modelId || "?"}`);
+            }
+            if (entry.type === "thinking_level_change" && entry.thinkingLevel) {
+              thinkingLevel = entry.thinkingLevel;
+            }
+            if (entry.type === "session_info" && entry.name) {
+              name = entry.name;
+            }
+            if (entry.type === "usage" && entry.usage) {
+              addUsage(entry.usage);
+            }
+            if (entry.type === "compaction" && entry.usage) {
+              addUsage(entry.usage);
+            }
+
+            if (entry.type !== "message" || !isObject(entry.message)) continue;
+            const message = entry.message;
+
+            if (message.role === "assistant") {
+              calls += 1;
+              if (message.provider || message.model) {
+                models.add(`${message.provider || "?"}/${message.model || "?"}`);
+              }
+              if (message.thinkingLevel) thinkingLevel = message.thinkingLevel;
+              modelMs += num(message.durationMs);
+              if (message.usage) addUsage(message.usage);
+
+              if (Array.isArray(message.content)) {
+                for (const block of message.content) {
+                  if (!block || block.type !== "toolCall") continue;
+                  toolCalls += 1;
+                  toolUsage.set(block.name, (toolUsage.get(block.name) || 0) + 1);
+                  if (block.id) callsById.set(block.id, { call: block, entry });
+                }
+              }
+            }
+
+            if (message.role === "toolResult" && message.toolCallId) {
+              resultsById.set(message.toolCallId, message);
+              if (message.isError) {
+                toolErrorCount += 1;
+                const key = message.toolName || "unknown";
+                toolErrors.set(key, (toolErrors.get(key) || 0) + 1);
+              }
+            }
+          }
+
+          function addUsage(usage) {
+            input += num(usage.input);
+            output += num(usage.output);
+            cacheRead += num(usage.cacheRead);
+            cacheWrite += num(usage.cacheWrite);
+            reasoning += num(usage.reasoning);
+            cost += usageCost(usage);
+          }
+
+          // 把 entry 变成可渲染的 item；能和 toolCall 对上的 toolResult 合并进调用卡片。
+          const items = [];
+          for (const entry of entries) {
+            if (!entry) continue;
+            if (entry.type === "message") {
+              const message = entry.message;
+              const role = message && message.role;
+              if (role === "toolResult" && message.toolCallId && callsById.has(message.toolCallId)) {
+                continue;
+              }
+              const kind =
+                role === "assistant"
+                  ? "assistant"
+                  : role === "user"
+                    ? "user"
+                    : role === "system"
+                      ? "system"
+                      : role === "bashExecution"
+                        ? "bashExecution"
+                        : role === "custom"
+                          ? "customMessage"
+                          : role === "toolResult"
+                            ? "toolResult"
+                            : "unknownMessage";
+              items.push({ kind, entry });
+              continue;
+            }
+            if (entry.type === "custom_message") {
+              items.push({ kind: "customMessage", entry });
+              continue;
+            }
+            items.push({ kind: entry.type || "unknown", entry });
+          }
+
+          // 会在时间线里拥有独立节点的 entry（被合并的 toolResult 除外）。
+          const renderedIds = new Set(items.map((item) => item.entry && item.entry.id).filter(Boolean));
+
+          // 一条 user message 开启一轮。
+          const rounds = [];
+          const startup = [];
+          let current = null;
+
+          for (const item of items) {
+            if (item.kind === "user") {
+              current = {
+                index: rounds.length + 1,
+                lead: item,
+                items: [],
+                stats: { tools: 0, tokens: 0, duration: 0, start: entryTime(item.entry), end: entryTime(item.entry) },
+              };
+              rounds.push(current);
+              continue;
+            }
+            if (current) current.items.push(item);
+            else startup.push(item);
+          }
+
+          for (const round of rounds) {
+            const all = [round.lead, ...round.items];
+            let tokens = 0;
+            let tools = 0;
+            let requests = 0;
+            let start = Infinity;
+            let end = -Infinity;
+
+            for (const item of all) {
+              const time = entryTime(item.entry);
+              if (Number.isFinite(time)) {
+                start = Math.min(start, time);
+                end = Math.max(end, time);
+              }
+              const entry = item.entry;
+              if (entry.type === "message" && entry.message && entry.message.role === "assistant") {
+                requests += 1;
+                item.requestNo = requests;
+                const usage = entry.message.usage;
+                if (usage) tokens += num(usage.totalTokens) || num(usage.input) + num(usage.output);
+                if (Array.isArray(entry.message.content)) {
+                  tools += entry.message.content.filter((block) => block && block.type === "toolCall").length;
+                }
+              }
+            }
+
+            round.stats.requests = requests;
+            round.stats.tools = tools;
+            round.stats.tokens = tokens;
+            round.stats.start = Number.isFinite(start) ? start : entryTime(round.lead.entry);
+            round.stats.end = Number.isFinite(end) ? end : round.stats.start;
+            round.stats.duration = Math.max(0, round.stats.end - round.stats.start);
+          }
+
+          const times = entries.map(entryTime).filter(Number.isFinite);
+          const headerTime = Date.parse(header.timestamp);
+          const startedAt = Number.isFinite(headerTime)
+            ? headerTime
+            : times.length
+              ? Math.min(...times)
+              : NaN;
+          const endedAt = times.length ? Math.max(...times) : startedAt;
+          const duration = Number.isFinite(startedAt) && Number.isFinite(endedAt) ? Math.max(0, endedAt - startedAt) : 0;
+
+          let firstUserText = "";
+          for (const entry of entries) {
+            if (entry.type === "message" && entry.message && entry.message.role === "user") {
+              firstUserText = titleFromUserText(textOfContent(entry.message.content));
+              if (firstUserText) break;
+            }
+          }
+
+          return {
+            id: header.id || "—",
+            cwd: header.cwd || "",
+            name,
+            title: name || clampText(firstUserText, 60) || "未命名会话",
+            startedAt,
+            endedAt,
+            duration,
+            input,
+            output,
+            cacheRead,
+            cacheWrite,
+            reasoning,
+            cost,
+            modelMs,
+            calls,
+            toolCalls,
+            toolErrorCount,
+            thinkingLevel,
+            models: [...models].filter(Boolean),
+            toolUsage,
+            toolErrors,
+            byId,
+            callsById,
+            resultsById,
+            branchIds,
+            renderedIds,
+            items,
+            rounds,
+            startup,
+          };
+        };
+
+        // ============================================================
+        // 渲染：搜索文本
+        // ============================================================
+
+        const entrySearchText = (entry) => {
+          if (!entry) return "";
+          if (entry.type === "message" && isObject(entry.message)) {
+            const message = entry.message;
+            if (message.role === "system") {
+              const parts = [message.content || ""];
+              if (isObject(message.sections)) {
+                for (const value of Object.values(message.sections)) parts.push(typeof value === "string" ? value : safeString(value));
+              }
+              if (Array.isArray(message.toolsAdded)) {
+                for (const tool of message.toolsAdded) parts.push(`${tool.name || ""} ${tool.description || ""}`);
+              }
+              return clampText(parts.join("\n").toLowerCase(), 80_000);
+            }
+            return clampText(
+              `${message.role || ""} ${message.toolName || ""} ${textOfContent(message.content)}`.toLowerCase(),
+              80_000,
+            );
+          }
+          if (entry.type === "custom_message") {
+            return clampText(`${entry.customType || ""} ${textOfContent(entry.content)}`.toLowerCase(), 20_000);
+          }
+          return clampText(safeString(entry).toLowerCase(), 20_000);
+        };
+
+        const assistantSearchText = (entry, analysis) => {
+          const message = entry.message || {};
+          const parts = [textOfContent(message.content)];
+          if (Array.isArray(message.content)) {
+            for (const block of message.content) {
+              if (!block) continue;
+              if (block.type === "thinking") parts.push(block.thinking || "");
+              if (block.type === "toolCall") {
+                parts.push(block.name || "", safeString(block.arguments || {}));
+                const result = analysis.resultsById.get(block.id);
+                if (result) parts.push(textOfContent(result.content));
+              }
+            }
+          }
+          return clampText(parts.join(" ").toLowerCase(), 80_000);
+        };
+
+        // ============================================================
+        // 渲染：小部件
+        // ============================================================
+
+        const usageBadges = (message) => {
+          const usage = message.usage;
+          if (!usage) return "";
+          const parts = [];
+          parts.push(`↑${fmtNum(usage.input)} ↓${fmtNum(usage.output)}`);
+          if (num(usage.cacheRead)) parts.push(`⚡${fmtNum(usage.cacheRead)}`);
+          if (num(usage.reasoning)) parts.push(`🧠${fmtNum(usage.reasoning)}`);
+          const title = [
+            `input: ${fmtNum(usage.input)}`,
+            `output: ${fmtNum(usage.output)}`,
+            `cacheRead: ${fmtNum(usage.cacheRead)}`,
+            `cacheWrite: ${fmtNum(usage.cacheWrite)}`,
+            `reasoning: ${fmtNum(usage.reasoning)}`,
+            `totalTokens: ${fmtNum(usage.totalTokens)}`,
+            `cost: ${fmtCost(usageCost(usage))}`,
+          ].join(" · ");
+          return `<span class="badge metric" title="${esc(title)}">${esc(parts.join(" "))}</span>`;
+        };
+
+        const stopBadge = (reason) => {
+          const info = stopInfo[reason];
+          if (!info) return "";
+          const [label, tone] = info;
+          return `<span class="badge ${tone || ""}" title="${esc(`stopReason: ${reason}`)}">${esc(label)}</span>`;
+        };
+
+        const branchBadge = (entry, analysis) =>
+          entry && entry.id && analysis.branchIds.has(entry.id)
+            ? `<span class="badge warn" title="${esc(`parentId 指向 ${entry.parentId}，不是文件里的上一条记录`)}">↳ 分支</span>`
+            : "";
+
+        const outputBlock = (text, options = {}) => {
+          const { max = 14, empty = "（无输出）" } = options;
+          let clean = stripAnsi(text).replace(/\r\n?/g, "\n");
+          if (!clean.trim()) return `<div class="tool-empty">${esc(empty)}</div>`;
+          const originalLength = clean.length;
+          if (clean.length > 200_000) {
+            clean = `${clean.slice(0, 200_000)}\n…（已截断显示，原长 ${fmtNum(originalLength)} 字符）`;
+          }
+          const lineCount = clean.split("\n").length;
+          const pre = `<pre class="tool-output" tabindex="0">${esc(clean)}</pre>`;
+          if (lineCount <= max && clean.length <= 5000) return pre;
+          return `<details class="tool-output-wrap"><summary>输出 · ${fmtNum(lineCount)} 行 / ${fmtBytes(clean.length)}（点击展开）</summary>${pre}</details>`;
+        };
+
+        const renderDiff = (diffText) => {
+          const lines = String(diffText || "").replace(/\r\n?/g, "\n").split("\n");
+          const body = lines
+            .map((line) => {
+              let cls = "ctx";
+              if (line.startsWith("+++") || line.startsWith("---")) cls = "meta";
+              else if (line.startsWith("+")) cls = "add";
+              else if (line.startsWith("-")) cls = "del";
+              else if (line.startsWith("@@")) cls = "hunk";
+              return `<span class="diff-line ${cls}">${esc(line) || " "}</span>`;
+            })
+            .join("\n");
+          return `<pre class="diff" tabindex="0">${body}</pre>`;
+        };
+
+        const pseudoDiff = (oldText, newText) => {
+          const oldLines = String(oldText ?? "").split("\n").map((line) => `-${line}`);
+          const newLines = String(newText ?? "").split("\n").map((line) => `+${line}`);
+          return ["--- 原内容", "+++ 新内容", ...oldLines, ...newLines].join("\n");
+        };
+
+        const imageTag = (block) => {
+          const mime = block.mimeType || "image/png";
+          const data = block.data || "";
+          if (!data) return "";
+          return `<img class="tool-img" src="data:${esc(mime)};base64,${esc(data)}" alt="会话中的图片" loading="lazy">`;
+        };
+
+        // 用户消息里可能被注入整段 <skill>…</skill>；把注入部分折叠起来，只突出真正的请求。
+        const renderTextContent = (value) => {
+          const text = String(value ?? "");
+          const skillRe = /<skill\b([^>]*)>([\s\S]*?)<\/skill>/gi;
+          const parts = [];
+          let lastIndex = 0;
+          let match;
+
+          while ((match = skillRe.exec(text))) {
+            const before = text.slice(lastIndex, match.index);
+            if (before.trim()) parts.push(`<div class="md">${md(before)}</div>`);
+
+            const nameMatch = (match[1] || "").match(/\bname\s*=\s*"([^"]+)"/i);
+            parts.push(
+              `<details class="injected-block"><summary>🧩 注入的 skill 内容${nameMatch ? ` · <code>${esc(nameMatch[1])}</code>` : ""} <span class="muted">· ${fmtNum(match[2].length)} 字符</span></summary><pre class="sys-text">${esc(match[2].trim())}</pre></details>`,
+            );
+            lastIndex = skillRe.lastIndex;
+          }
+
+          const tail = text.slice(lastIndex);
+          if (tail.trim() || !parts.length) parts.push(`<div class="md">${md(tail)}</div>`);
+          return parts.join("");
+        };
+
+        const renderMixedContent = (content) => {
+          if (typeof content === "string") return renderTextContent(content);
+          if (!Array.isArray(content)) return `<pre class="misc-json">${esc(pretty(content, true))}</pre>`;
+          return content
+            .map((block) => {
+              if (!block || typeof block !== "object") return "";
+              if (block.type === "text") return renderTextContent(block.text || "");
+              if (block.type === "image") return imageTag(block);
+              return `<details class="misc-json"><summary>内容块 · ${esc(block.type || "unknown")}</summary><pre>${esc(pretty(block, true))}</pre></details>`;
+            })
+            .join("");
+        };
+
+        const rawButton = (id, label = "JSON") =>
+          id ? `<button class="icon-btn" type="button" data-raw="${esc(id)}" title="查看这条 entry 的原始 JSON">${label}</button>` : "";
+
+        // ============================================================
+        // 渲染：工具调用
+        // ============================================================
+
+        const normalizeArgs = (value) => {
+          if (value == null) return {};
+          if (typeof value === "string") {
+            try {
+              const parsed = JSON.parse(value);
+              return isObject(parsed) ? parsed : { _raw: value };
+            } catch {
+              return { _raw: value };
+            }
+          }
+          return isObject(value) ? value : { _value: value };
+        };
+
+        const argPath = (args) => args.path ?? args.file_path ?? args.filePath ?? args.file ?? "";
+
+        const summarizeTool = (name, args) => {
+          switch (name) {
+            case "bash":
+              return clampText(String(args.command || "").split("\n").find((line) => line.trim()) || "", 140);
+            case "read": {
+              const range =
+                args.offset != null || args.limit != null
+                  ? `:${Number(args.offset) || 1}${args.limit ? `-${(Number(args.offset) || 1) + Number(args.limit) - 1}` : ""}`
+                  : "";
+              return `${shortenPath(argPath(args))}${range}`;
+            }
+            case "write":
+            case "edit": {
+              const count = Array.isArray(args.edits) ? args.edits.length : 0;
+              return `${shortenPath(argPath(args))}${count ? ` · ${count} 处修改` : ""}`;
+            }
+            case "ls":
+              return shortenPath(args.path || ".");
+            case "grep":
+              return `/${clampText(args.pattern || "", 60)}/${args.path ? ` in ${shortenPath(args.path)}` : ""}`;
+            case "web_search": {
+              const queries = Array.isArray(args.queries) ? args.queries : [args.query];
+              return clampText(queries.filter(Boolean).join(" | "), 120);
+            }
+            case "fetch_content":
+              return clampText(args.url || "", 120);
+            case "subagent":
+              return clampText(args.description || args.agent || args.task || "", 120);
+            default: {
+              const pairs = Object.entries(args)
+                .slice(0, 2)
+                .map(([key, value]) => `${key}=${clampText(typeof value === "string" ? value : safeString(value), 40)}`);
+              return pairs.join(" ");
+            }
+          }
+        };
+
+        const toolIcon = (name) =>
+          ({ bash: "$", read: "▤", write: "✎", edit: "±", ls: "▦", grep: "⌕", web_search: "↗", fetch_content: "↧", subagent: "⧉" })[name] || "⚙";
+
+        const renderToolCall = (call, result, analysis, assistantEntry) => {
+          const args = normalizeArgs(call.arguments);
+          const name = call.name || "tool";
+          const isError = !!result?.isError;
+          const missing = !result;
+          const statusClass = missing ? "pending" : isError ? "err" : "";
+          const statusText = missing ? "无结果" : isError ? "失败" : "成功";
+          const duration = result && result.durationMs != null ? ` · ${fmtDuration(result.durationMs)}` : "";
+          const resultImages =
+            result && Array.isArray(result.content) ? result.content.filter((block) => block && block.type === "image") : [];
+
+          let body = "";
+
+          if (name === "bash") {
+            body += `<pre class="cmd"><span class="cmd-prompt">$</span> ${esc(String(args.command ?? ""))}</pre>`;
+            body += outputBlock(resultText(result), { max: 14, empty: missing ? "（还没有 toolResult）" : "（无输出）" });
+          } else if (name === "read") {
+            body += `<div class="tool-path">${esc(argPath(args) || "（未提供路径）")}</div>`;
+            body += outputBlock(resultText(result), { max: 18, empty: missing ? "（还没有 toolResult）" : "（空文件）" });
+          } else if (name === "edit") {
+            const edits = Array.isArray(args.edits)
+              ? args.edits
+              : args.oldText !== undefined || args.newText !== undefined
+                ? [{ oldText: args.oldText, newText: args.newText }]
+                : [];
+            body += `<div class="tool-path">${esc(argPath(args) || "（未提供路径）")}</div>`;
+            if (result?.details?.diff) {
+              body += renderDiff(result.details.diff);
+            } else if (edits.length) {
+              body += edits
+                .map(
+                  (edit, index) =>
+                    `<div class="edit-block"><div class="edit-label">修改 ${index + 1}/${edits.length}</div>${renderDiff(
+                      pseudoDiff(edit.oldText, edit.newText),
+                    )}</div>`,
+                )
+                .join("");
+            }
+            body += outputBlock(resultText(result), { max: 6, empty: missing ? "（还没有 toolResult）" : "（无输出）" });
+          } else if (name === "write") {
+            body += `<div class="tool-path">${esc(argPath(args) || "（未提供路径）")}</div>`;
+            if (typeof args.content === "string") {
+              body += outputBlock(args.content, { max: 16, empty: "（空文件）" });
+            }
+            body += outputBlock(resultText(result), { max: 5, empty: missing ? "（还没有 toolResult）" : "" });
+          } else {
+            body += outputBlock(resultText(result), { max: 14, empty: missing ? "（还没有 toolResult）" : "（无输出）" });
+          }
+
+          if (resultImages.length) {
+            body += resultImages.map(imageTag).join("");
+          }
+
+          return `
+            <div class="tool-call${isError ? " is-error" : ""}${missing ? " is-pending" : ""}">
+              <div class="tool-head">
+                <span class="tool-icon" aria-hidden="true">${esc(toolIcon(name))}</span>
+                <span class="tool-name">${esc(name)}</span>
+                <span class="tool-summary" title="${esc(summarizeTool(name, args))}">${esc(summarizeTool(name, args) || "（无参数摘要）")}</span>
+                <span class="tool-status ${statusClass}">${esc(statusText)}${esc(duration)}</span>
+              </div>
+              <div class="tool-body">
+                ${body}
+                ${call.argumentsError ? `<div class="error-banner">参数不是合法 JSON：${esc(call.argumentsError)}</div>` : ""}
+                <details class="tool-args"><summary>参数 JSON</summary><pre>${esc(pretty(args, true))}</pre></details>
+                <div class="step-foot">
+                  <span class="entry-note">${missing ? "assistant.toolCall（无对应 toolResult）" : "assistant.toolCall → toolResult（两条 entry）"}</span>
+                  ${rawButton(assistantEntry?.id, "查看 assistant entry")}
+                </div>
+              </div>
+            </div>`;
+        };
+
+        // ============================================================
+        // 渲染：条目
+        // ============================================================
+
+        const renderItem = (item, analysis) => {
+          switch (item.kind) {
+            case "user":
+              return renderUserStep(item, analysis);
+            case "assistant":
+              return renderAssistantStep(item, analysis);
+            case "system":
+              return renderSystemCard(item, analysis);
+            case "toolResult":
+              return renderOrphanResult(item, analysis);
+            case "bashExecution":
+              return renderBashExecution(item, analysis);
+            case "customMessage":
+              return renderCustomMessage(item, analysis);
+            default:
+              return renderEvent(item, analysis);
+          }
+        };
+
+        const renderUserStep = (item, analysis) => {
+          const entry = item.entry;
+          const message = entry.message || {};
+          return `
+            <article class="step step-user" id="entry-${esc(entry.id || "")}" data-search="${esc(entrySearchText(entry))}">
+              <header class="step-head">
+                <span class="avatar user" aria-hidden="true">你</span>
+                <span class="step-title">用户</span>
+                <span class="step-time">${esc(fmtTime(entryTime(entry)))}</span>
+                ${branchBadge(entry, analysis)}
+                ${rawButton(entry.id)}
+              </header>
+              <div class="step-body">${renderMixedContent(message.content)}</div>
+            </article>`;
+        };
+
+        const renderAssistantStep = (item, analysis) => {
+          const entry = item.entry;
+          const message = entry.message || {};
+          const blocks = Array.isArray(message.content)
+            ? message.content
+            : message.content
+              ? [{ type: "text", text: textOfContent(message.content) }]
+              : [];
+          const hasToolCall = blocks.some((block) => block && block.type === "toolCall");
+          const finalAnswer = message.stopReason === "stop" && !hasToolCall;
+          const model = [message.provider, message.model].filter(Boolean).join("/");
+
+          const renderedBlocks = blocks
+            .map((block) => {
+              if (!block || typeof block !== "object") return "";
+              if (block.type === "thinking") {
+                const text = block.thinking || "";
+                if (block.redacted) {
+                  return `<div class="thinking-block"><div class="thinking-text">（思考内容被安全策略隐藏）</div></div>`;
+                }
+                return `<details class="thinking-block"><summary>💭 思考过程 <span class="muted">· ${fmtNum(text.length)} 字</span></summary><div class="thinking-text">${esc(text)}</div></details>`;
+              }
+              if (block.type === "text") return `<div class="md">${md(block.text || "")}</div>`;
+              if (block.type === "toolCall") {
+                return renderToolCall(block, analysis.resultsById.get(block.id), analysis, entry);
+              }
+              if (block.type === "image") return imageTag(block);
+              return `<details class="misc-json"><summary>未知内容块 · ${esc(block.type || "unknown")}</summary><pre>${esc(pretty(block, true))}</pre></details>`;
+            })
+            .join("");
+
+          return `
+            <article class="step step-assistant" id="entry-${esc(entry.id || "")}" data-search="${esc(assistantSearchText(entry, analysis))}">
+              <header class="step-head">
+                <span class="avatar ai" aria-hidden="true">π</span>
+                <span class="step-title">模型响应${item.requestNo ? ` · 第 ${item.requestNo} 次请求` : ""}${finalAnswer ? " · 回答" : ""}</span>
+                ${model ? `<span class="badge model" title="${esc(
+                  [
+                    message.api ? `api: ${message.api}` : "",
+                    message.responseId ? `responseId: ${message.responseId}` : "",
+                    message.rawStopReason ? `rawStopReason: ${message.rawStopReason}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · "),
+                )}">${esc(model)}</span>` : ""}
+                ${message.thinkingLevel ? `<span class="badge">thinking: ${esc(message.thinkingLevel)}</span>` : ""}
+                ${stopBadge(message.stopReason)}
+                <span class="step-time">${esc(fmtTime(entryTime(entry)))}</span>
+                ${usageBadges(message)}
+                ${message.durationMs != null ? `<span class="badge">${esc(fmtDuration(message.durationMs))}</span>` : ""}
+                ${branchBadge(entry, analysis)}
+                ${rawButton(entry.id)}
+              </header>
+              ${message.errorMessage ? `<div class="error-banner">${esc(message.errorMessage)}</div>` : ""}
+              <div class="step-body">${renderedBlocks || '<p class="muted">（这条 assistant 没有内容块）</p>'}</div>
+            </article>`;
+        };
+
+        const renderSystemCard = (item, analysis) => {
+          const entry = item.entry;
+          const message = entry.message || {};
+          const sections = isObject(message.sections) ? message.sections : {};
+          const sectionEntries = Object.entries(sections);
+          const tools = Array.isArray(message.toolsAdded) ? message.toolsAdded : [];
+          const totalChars =
+            (typeof message.content === "string" ? message.content.length : 0) +
+            sectionEntries.reduce((sum, [, value]) => sum + (typeof value === "string" ? value.length : 0), 0);
+
+          const sectionHtml = sectionEntries
+            .map(([key, value]) => {
+              const text = typeof value === "string" ? value : pretty(value, true);
+              return `<details class="sys-section"${key === "preamble" ? " open" : ""}>
+                <summary><span>${esc(key)}</span><span class="muted">${fmtNum(text.length)} 字符</span></summary>
+                <pre class="sys-text">${esc(text)}</pre>
+              </details>`;
+            })
+            .join("");
+
+          const toolsHtml = tools.length
+            ? `<details class="tool-defs">
+                <summary>工具清单 · ${tools.length} 个（模型能调用什么、参数长什么样）</summary>
+                <div class="tool-def-list">
+                  ${tools
+                    .map(
+                      (tool) => `<details class="tool-def">
+                        <summary><code>${esc(tool.name || "?")}</code><span>${esc(clampText(tool.description || "", 120))}</span></summary>
+                        <pre>${esc(pretty(tool.parameters || {}, true))}</pre>
+                      </details>`,
+                    )
+                    .join("")}
+                </div>
+              </details>`
+            : "";
+
+          return `
+            <article class="step step-system sys-card" id="entry-${esc(entry.id || "")}" data-search="${esc(entrySearchText(entry))}">
+              <details>
+                <summary class="step-head">
+                  <span class="avatar sys" aria-hidden="true">SYS</span>
+                  <span class="step-title">系统提示词</span>
+                  <span class="badge">${sectionEntries.length} 个区块 · ${fmtNum(totalChars)} 字符</span>
+                  <span class="step-time">${esc(fmtTime(entryTime(entry)))}</span>
+                  <span class="summary-hint">展开 / 收起</span>
+                </summary>
+                <div class="step-body">
+                  <p class="teach-note">
+                    系统提示词不在 message 列表里逐轮重复，但模型每次请求都会收到它。
+                    下面是 pi 写入的 section；<code>toolsAdded</code> 是本次会话真正注册给模型的工具与 JSON Schema。
+                  </p>
+                  ${sectionHtml || (message.content ? `<pre class="sys-text">${esc(message.content)}</pre>` : '<p class="muted">（没有内容）</p>')}
+                  ${toolsHtml}
+                  <div class="step-foot">
+                    <span class="entry-note">role: system</span>
+                    ${rawButton(entry.id, "查看原始 entry")}
+                  </div>
+                </div>
+              </details>
+            </article>`;
+        };
+
+        const renderOrphanResult = (item, analysis) => {
+          const entry = item.entry;
+          const message = entry.message || {};
+          const images = Array.isArray(message.content)
+            ? message.content.filter((block) => block && block.type === "image")
+            : [];
+          return `
+            <article class="step step-event" id="entry-${esc(entry.id || "")}" data-search="${esc(entrySearchText(entry))}">
+              <header class="step-head">
+                <span class="avatar tool" aria-hidden="true">↩</span>
+                <span class="step-title">工具结果${message.toolName ? ` · ${esc(message.toolName)}` : ""}</span>
+                <span class="badge ${message.isError ? "err" : "ok"}">${message.isError ? "失败" : "成功"}</span>
+                ${message.durationMs != null ? `<span class="badge">${esc(fmtDuration(message.durationMs))}</span>` : ""}
+                <span class="step-time">${esc(fmtTime(entryTime(entry)))}</span>
+                ${branchBadge(entry, analysis)}
+                ${rawButton(entry.id)}
+              </header>
+              <div class="step-body">
+                ${messagesToOutput(message)}
+                ${images.map(imageTag).join("")}
+                <p class="teach-note">没有找到对应的 <code>toolCall</code>，可能是来自其他分支或旧记录。</p>
+              </div>
+            </article>`;
+        };
+
+        const messagesToOutput = (message) => outputBlock(resultText(message), { max: 18 });
+
+        const renderBashExecution = (item, analysis) => {
+          const entry = item.entry;
+          const message = entry.message || {};
+          const code = message.exitCode;
+          return `
+            <article class="step step-bash" id="entry-${esc(entry.id || "")}" data-search="${esc(entrySearchText(entry))}">
+              <header class="step-head">
+                <span class="avatar tool" aria-hidden="true">!</span>
+                <span class="step-title">本地命令（bashExecution）</span>
+                <span class="badge ${code === 0 ? "ok" : code == null ? "" : "err"}">${code == null ? "无退出码" : `exit ${code}`}</span>
+                <span class="step-time">${esc(fmtTime(entryTime(entry)))}</span>
+                ${branchBadge(entry, analysis)}
+                ${rawButton(entry.id)}
+              </header>
+              <div class="step-body">
+                <pre class="cmd"><span class="cmd-prompt">$</span> ${esc(message.command || "")}</pre>
+                ${outputBlock(message.output || "", { max: 18, empty: "（无输出）" })}
+                ${message.truncated ? `<p class="teach-note">输出被截断${message.fullOutputPath ? `，完整内容在 <code>${esc(message.fullOutputPath)}</code>` : ""}。</p>` : ""}
+              </div>
+            </article>`;
+        };
+
+        const renderCustomMessage = (item, analysis) => {
+          const entry = item.entry;
+          const source = entry.message || entry;
+          const customType = source.customType || entry.customType || "";
+          const content = source.content ?? entry.content;
+          return `
+            <article class="step step-custom" id="entry-${esc(entry.id || "")}" data-search="${esc(entrySearchText(entry))}">
+              <header class="step-head">
+                <span class="avatar" aria-hidden="true">EXT</span>
+                <span class="step-title">扩展注入的消息</span>
+                ${customType ? `<span class="badge">${esc(customType)}</span>` : ""}
+                <span class="badge">display: ${source.display ? "true" : "false"}</span>
+                <span class="step-time">${esc(fmtTime(entryTime(entry)))}</span>
+                ${branchBadge(entry, analysis)}
+                ${rawButton(entry.id)}
+              </header>
+              <div class="step-body">
+                ${renderMixedContent(content)}
+                <p class="teach-note">
+                  扩展通过 <code>sendMessage()</code> 注入的消息，会进入模型上下文；
+                  <code>display: false</code> 时只影响模型，不在 TUI 里显示。
+                </p>
+                ${source.details !== undefined ? `<details class="misc-json"><summary>扩展 details</summary><pre>${esc(pretty(source.details, true))}</pre></details>` : ""}
+              </div>
+            </article>`;
+        };
+
+        // ============================================================
+        // 渲染：会话事件
+        // ============================================================
+
+        const renderEvent = (item, analysis) => {
+          const entry = item.entry;
+          const info = eventInfo(entry, analysis);
+          return `
+            <article class="step step-event ${info.cls || ""}" id="entry-${esc(entry.id || "")}" data-search="${esc(entrySearchText(entry))}">
+              <header class="step-head">
+                <span class="avatar event" aria-hidden="true">${esc(info.icon || "•")}</span>
+                <span class="step-title">${esc(info.title)}</span>
+                ${info.badge ? `<span class="badge">${esc(info.badge)}</span>` : ""}
+                <span class="step-time">${esc(fmtTime(entryTime(entry)))}</span>
+                ${branchBadge(entry, analysis)}
+                ${rawButton(entry.id)}
+              </header>
+              <div class="step-body">${info.body}</div>
+            </article>`;
+        };
+
+        const targetLink = (id, analysis) =>
+          id && analysis.renderedIds.has(id)
+            ? `<a href="#entry-${esc(id)}"><code>${esc(id)}</code></a>`
+            : `<code title="这条记录没有独立节点，可能合并在工具调用卡片里">${esc(id || "—")}</code>`;
+
+        const eventInfo = (entry, analysis) => {
+          const time = fmtTime(entryTime(entry));
+          switch (entry.type) {
+            case "model_change":
+              return {
+                icon: "⇄",
+                title: "模型切换",
+                body: `<p>后续请求使用 <code>${esc(entry.provider || "?")}/${esc(entry.modelId || "?")}</code>。</p>
+                  <p class="teach-note">模型切换本身不产生消息；它只是改变之后请求的参数。</p>`,
+              };
+            case "thinking_level_change":
+              return {
+                icon: "🧠",
+                title: "思考等级变更",
+                body: `<p>thinkingLevel → <code>${esc(entry.thinkingLevel || "?")}</code></p>`,
+              };
+            case "compaction": {
+              const summary = entry.summary || "";
+              const kept = entry.firstKeptEntryId;
+              return {
+                icon: "📦",
+                cls: "step-compaction",
+                title: "上下文压缩（compaction）",
+                body: `<p>把之前的历史压缩成一段摘要，压缩前约 <b>${fmtNum(entry.tokensBefore)}</b> tokens。</p>
+                  <p class="teach-note">压缩后，模型看到的是摘要加上 ${kept ? `entry ${targetLink(kept, analysis)} 之后` : "之后"}的记录；旧 entry 仍保留在文件里，不会被删除。</p>
+                  ${summary ? `<details class="compaction-summary"><summary>压缩摘要 · ${fmtNum(summary.length)} 字符</summary><div class="md">${md(summary)}</div></details>` : ""}`,
+              };
+            }
+            case "branch_summary":
+              return {
+                icon: "🌿",
+                title: "分支总结",
+                body: `<p>从 ${targetLink(entry.fromId, analysis)} 切回主线时生成的摘要。</p>
+                  ${entry.summary ? `<details class="compaction-summary"><summary>分支摘要</summary><div class="md">${md(entry.summary)}</div></details>` : ""}`,
+              };
+            case "custom":
+              return {
+                icon: "🧩",
+                title: "扩展数据",
+                badge: entry.customType || "",
+                body: `<p class="teach-note">扩展写给自己的记录，不进入模型上下文；重新加载会话时扩展可以读回它。</p>
+                  ${entry.data !== undefined ? `<details class="misc-json"><summary>data</summary><pre>${esc(pretty(entry.data, true))}</pre></details>` : ""}`,
+              };
+            case "context_edit": {
+              const replacement = entry.replacement;
+              let body = `<p>目标：${targetLink(entry.targetId, analysis)}</p>`;
+              if (replacement == null) {
+                body += `<p>这条 entry 被从后续模型上下文中移除（文件里的原始记录还在）。</p>`;
+              } else if (replacement && "content" in replacement) {
+                body += `<p>只替换这条 entry 对模型可见的内容：</p>${renderMixedContent(replacement.content)}`;
+              } else {
+                body += `<details class="misc-json"><summary>replacement</summary><pre>${esc(pretty(replacement, true))}</pre></details>`;
+              }
+              return { icon: "✂", title: "上下文编辑", badge: "append-only", body };
+            }
+            case "label":
+              return {
+                icon: "🔖",
+                title: "书签 / 标记",
+                body: `<p>给 ${targetLink(entry.targetId, analysis)} 添加标记：<b>${esc(entry.label || "（已清除）")}</b></p>`,
+              };
+            case "session_info":
+              return {
+                icon: "📛",
+                title: "会话命名",
+                body: `<p>会话名称设为 <b>${esc(entry.name || "（空）")}</b>。</p>`,
+              };
+            case "usage":
+              return {
+                icon: "💰",
+                title: "计费记录",
+                badge: entry.kind || "",
+                body: `<p><code>${esc(entry.provider || "?")}/${esc(entry.model || "?")}</code> · ↑${fmtNum(entry.usage?.input)} ↓${fmtNum(entry.usage?.output)} · ${fmtCost(usageCost(entry.usage))}</p>
+                  ${entry.note ? `<p class="muted">${esc(entry.note)}</p>` : ""}`,
+              };
+            default:
+              return {
+                icon: "•",
+                title: `记录 · ${entry.type || "unknown"}`,
+                body: `<details class="misc-json" open><summary>原始 JSON</summary><pre>${esc(pretty(entry, true))}</pre></details>`,
+              };
+          }
+        };
+
+        // ============================================================
+        // 渲染：侧栏 / 头部 / 时间线
+        // ============================================================
+
+        const chip = (label, value, title = "") =>
+          `<span class="meta-chip" title="${esc(title || value)}"><span aria-hidden="true">${esc(label)}</span>${value}</span>`;
+
+        const renderWarnings = (session) => {
+          const notes = [];
+          if (session.errors.length) {
+            const lines = session.errors.slice(0, 5).map((error) => error.line).join("、");
+            notes.push(
+              `有 ${session.errors.length} 行无法解析（第 ${lines}${session.errors.length > 5 ? "…" : ""} 行），已跳过。`,
+            );
+          }
+          if (session.header.version && Number(session.header.version) !== 3) {
+            notes.push(`会话版本是 ${session.header.version}，本页按 v3 结构解析，个别字段可能不同。`);
+          }
+          if (!session.isJsonl && !session.demo) {
+            notes.push("文件不是逐行 JSONL，已按 JSON 数组或 { header, entries } 解析。");
+          }
+          if (session.header.parentSession) {
+            notes.push(`这是一个子会话（parentSession: ${session.header.parentSession}）。`);
+          }
+          return notes.length ? `<div class="warn-banner">${notes.map(esc).join("<br>")}</div>` : "";
+        };
+
+        const renderSession = (session) => {
+          const analysis = session.analysis;
+          const modelText = analysis.models.length ? analysis.models.map(esc).join("<br>") : "—";
+          const roundCount = analysis.rounds.length;
+
+          return `
+            <div class="session-head">
+              <div>
+                <span class="eyebrow">会话回放 · ${esc(session.demo ? "内置示例" : "本地文件")}</span>
+                <h1>${esc(analysis.title)}</h1>
+                <p class="session-sub">
+                  ${esc(session.filename)} · <code>${esc(analysis.id)}</code>
+                  ${roundCount ? ` · ${roundCount} 轮` : ""}
+                </p>
+              </div>
+              <div class="session-actions">
+                <button class="btn small" type="button" data-raw="__header__">会话头 JSON</button>
+                <button class="btn small" type="button" data-action="pick">打开其他文件</button>
+                <button class="btn small" type="button" data-action="pick-folder">导入文件夹</button>
+                <button class="btn small" type="button" data-action="clear">清除全部</button>
+              </div>
+            </div>
+
+            ${renderWarnings(session)}
+
+            <div class="chips-row">
+              ${chip("🕒", esc(fmtDate(analysis.startedAt)), "会话开始时间")}
+              ${chip("⏱", esc(fmtDuration(analysis.duration)), "从会话头到最后一条记录")}
+              ${chip("🤖", modelText, analysis.models.join("\n"))}
+              ${chip("🧠", `thinking ${esc(analysis.thinkingLevel || "—")}`)}
+              ${chip("💬", `${analysis.calls} 次模型请求`)}
+              ${chip("🔧", `${analysis.toolCalls} 次工具调用${analysis.toolErrorCount ? ` · ${analysis.toolErrorCount} 失败` : ""}`)}
+              ${chip("📍", `<code>${esc(analysis.cwd || "—")}</code>`, analysis.cwd)}
+              ${chip("📄", `v${esc(session.header.version ?? "?")}`)}
+            </div>
+
+            <div class="layout">
+              <aside class="rail" aria-label="会话概览">
+                ${renderRail(session)}
+              </aside>
+              <div class="main-col">
+                <div class="toolbar" role="search">
+                  <div class="search-wrap">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="search" type="search" placeholder="搜索消息、工具、命令、输出…" autocomplete="off" aria-label="搜索会话内容" value="${esc(state.q)}">
+                    <span class="search-count" id="search-count"></span>
+                  </div>
+                  <div class="filter-chips">
+                    <label class="chip"><input type="checkbox" data-filter="system"${state.filters.system ? " checked" : ""}>系统提示</label>
+                    <label class="chip"><input type="checkbox" data-filter="thinking"${state.filters.thinking ? " checked" : ""}>思考过程</label>
+                    <label class="chip"><input type="checkbox" data-filter="toolOutput"${state.filters.toolOutput ? " checked" : ""}>工具详情</label>
+                    <label class="chip"><input type="checkbox" data-filter="events"${state.filters.events ? " checked" : ""}>事件与扩展</label>
+                  </div>
+                  <div class="tool-actions">
+                    <button class="btn small" type="button" data-action="expand">展开全部</button>
+                    <button class="btn small" type="button" data-action="collapse">折叠全部</button>
+                    <div class="segmented" role="group" aria-label="视图切换">
+                      <button type="button" data-view="timeline" class="${state.view === "timeline" ? "active" : ""}" aria-pressed="${state.view === "timeline"}">时间线</button>
+                      <button type="button" data-view="raw" class="${state.view === "raw" ? "active" : ""}" aria-pressed="${state.view === "raw"}">原始 JSONL</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="view-timeline"${state.view === "raw" ? " hidden" : ""}>${renderTimeline(session)}</div>
+                <div id="view-raw"${state.view === "timeline" ? " hidden" : ""}>${renderRaw(session)}</div>
+              </div>
+            </div>`;
+        };
+
+        const renderRail = (session) => {
+          const analysis = session.analysis;
+          const toolBars = [...analysis.toolUsage.entries()].sort((a, b) => b[1] - a[1]);
+          const maxTool = toolBars.length ? toolBars[0][1] : 1;
+
+          return `
+            <section class="panel">
+              <h2 class="panel-title">会话信息</h2>
+              <dl class="kv">
+                <dt>文件</dt><dd title="${esc(session.filename)}">${esc(session.filename)}</dd>
+                <dt>会话 ID</dt><dd><code>${esc(analysis.id)}</code></dd>
+                <dt>工作目录</dt><dd><code>${esc(analysis.cwd || "—")}</code></dd>
+                <dt>开始</dt><dd>${esc(fmtDate(analysis.startedAt))}</dd>
+                <dt>结束</dt><dd>${esc(fmtDate(analysis.endedAt))}</dd>
+                <dt>版本</dt><dd>v${esc(session.header.version ?? "?")}</dd>
+                <dt>记录</dt><dd>${fmtNum(session.entries.length)} 条 entry</dd>
+              </dl>
+            </section>
+
+            <section class="panel">
+              <h2 class="panel-title">数据概览</h2>
+              <div class="stats">
+                <div class="stat"><b>${esc(fmtDuration(analysis.duration))}</b><span>总时长</span></div>
+                <div class="stat"><b>${analysis.calls} 次</b><span>模型请求</span></div>
+                <div class="stat"><b>${analysis.toolCalls} 次</b><span>工具调用${analysis.toolErrorCount ? ` · ${analysis.toolErrorCount} 失败` : ""}</span></div>
+                <div class="stat"><b>${esc(fmtCost(analysis.cost))}</b><span>累计费用</span></div>
+                <div class="stat"><b>${fmtNum(analysis.input)}</b><span>输入 token</span></div>
+                <div class="stat"><b>${fmtNum(analysis.output)}</b><span>输出 token</span></div>
+                <div class="stat"><b>${fmtNum(analysis.cacheRead)}</b><span>缓存读 token</span></div>
+                <div class="stat"><b>${analysis.calls ? esc(fmtDuration(analysis.modelMs / analysis.calls)) : "—"}</b><span>平均模型耗时</span></div>
+              </div>
+              <p class="fineprint">
+                <code>usage.input</code> 是每次请求的输入量；多轮累加会重复计算同一段上下文，所以它不是“当前上下文大小”。
+              </p>
+            </section>
+
+            ${
+              toolBars.length
+                ? `<section class="panel">
+                    <h2 class="panel-title">工具使用</h2>
+                    <ul class="bars">
+                      ${toolBars
+                        .map(([name, count]) => {
+                          const errors = analysis.toolErrors.get(name) || 0;
+                          return `<li>
+                            <span class="bar-label"><code>${esc(name)}</code>${errors ? `<span class="bar-err">${errors} 失败</span>` : ""}</span>
+                            <span class="bar-track"><span class="bar-fill" style="width:${Math.max(6, (count / maxTool) * 100).toFixed(1)}%"></span></span>
+                            <span class="bar-num">${count}</span>
+                          </li>`;
+                        })
+                        .join("")}
+                    </ul>
+                  </section>`
+                : ""
+            }
+
+            ${
+              analysis.rounds.length
+                ? `<section class="panel round-nav-panel">
+                    <h2 class="panel-title">轮次导航</h2>
+                    <ol class="round-nav">
+                      ${analysis.rounds
+                        .map((round) => {
+                          const text = textOfContent(round.lead.entry.message?.content ?? round.lead.entry.content)
+                            .replace(/\s+/g, " ")
+                            .trim();
+                          return `<li><a class="round-link" href="#round-${round.index}" data-round-link="${round.index}">
+                            <span class="rn">${String(round.index).padStart(2, "0")}</span>
+                            <span class="rt">${esc(clampText(text, 48) || "（无文本）")}</span>
+                            <span class="rm">${round.stats.tools ? `${round.stats.tools} 工具 · ` : ""}${esc(fmtDuration(round.stats.duration))}</span>
+                          </a></li>`;
+                        })
+                        .join("")}
+                    </ol>
+                  </section>`
+                : ""
+            }
+
+            <section class="panel tips">
+              <h2 class="panel-title">怎么读这份记录</h2>
+              <ul>
+                <li>一条 <code>user</code> message 开启一轮；每次模型请求对应一条 <code>assistant</code> message。</li>
+                <li>工具调用在 assistant 的 <code>content[]</code> 里；结果另存为 <code>role: "toolResult"</code> 的 message。</li>
+                <li><code>stopReason: "toolUse"</code> 说明模型还要继续；<code>"stop"</code> 表示这轮说完了。</li>
+                <li><code>parentId</code> 把 entry 连成树；文件是 append-only，切分支不删旧记录。</li>
+                <li>钩子 / 扩展的记录以 <code>custom</code> 或 <code>custom_message</code> 出现，前者不进模型上下文。</li>
+              </ul>
+            </section>`;
+        };
+
+        const renderTimeline = (session) => {
+          const analysis = session.analysis;
+          const parts = [];
+
+          if (analysis.startup.length) {
+            parts.push(`
+              <section class="startup">
+                <header class="round-head">
+                  <span class="round-num">启动</span>
+                  <span class="round-time">${esc(fmtTime(analysis.startedAt))}</span>
+                  <span class="round-stats">会话元信息、系统提示词与扩展记录</span>
+                </header>
+                <div class="timeline">${analysis.startup.map((item) => renderItem(item, analysis)).join("")}</div>
+              </section>`);
+          }
+
+          for (const round of analysis.rounds) {
+            parts.push(`
+              <section class="round" id="round-${round.index}" data-round="${round.index}">
+                <header class="round-head">
+                  <span class="round-num">第 ${round.index} 轮</span>
+                  <span class="round-time">${esc(fmtTime(round.stats.start))}</span>
+                  <span class="round-stats">${round.stats.requests ? `${round.stats.requests} 次模型请求 · ` : ""}${round.stats.tools ? `${round.stats.tools} 次工具 · ` : ""}${esc(fmtDuration(round.stats.duration))}${round.stats.tokens ? ` · ${fmtNum(round.stats.tokens)} tok` : ""}</span>
+                  <button class="round-toggle" type="button" data-round-toggle="${round.index}" aria-expanded="true">折叠本轮</button>
+                </header>
+                <div class="timeline">
+                  ${renderItem(round.lead, analysis)}
+                  ${round.items.map((item) => renderItem(item, analysis)).join("")}
+                </div>
+              </section>`);
+          }
+
+          if (!parts.length) {
+            parts.push(`<p class="empty">这个会话里没有可显示的消息。</p>`);
+          }
+
+          return `<div class="timeline-wrap">${parts.join("")}</div>`;
+        };
+
+        // ============================================================
+        // 渲染：原始 JSONL
+        // ============================================================
+
+        const rawSummary = (entry) => {
+          if (!entry || typeof entry !== "object") return "";
+          if (entry.type === "session") {
+            return `version ${entry.version ?? "?"} · ${entry.cwd || ""}`;
+          }
+          if (entry.type === "message" && isObject(entry.message)) {
+            const message = entry.message;
+            const text = textOfContent(message.content).replace(/\s+/g, " ").trim();
+            return `${message.role || "?"}${message.toolName ? ` · ${message.toolName}` : ""}${text ? ` · ${text}` : ""}`;
+          }
+          if (entry.type === "custom") return `customType: ${entry.customType || "?"}`;
+          if (entry.type === "model_change") return `${entry.provider || "?"}/${entry.modelId || "?"}`;
+          if (entry.type === "thinking_level_change") return `thinkingLevel: ${entry.thinkingLevel || "?"}`;
+          if (entry.type === "session_info") return entry.name || "";
+          if (entry.type === "compaction") return `压缩前 ${fmtNum(entry.tokensBefore)} tokens`;
+          if (entry.type === "custom_message") return entry.customType || "";
+          if (entry.type === "context_edit") return `target: ${entry.targetId || "?"}`;
+          if (entry.type === "label") return `${entry.label || ""} → ${entry.targetId || ""}`;
+          return "";
+        };
+
+        const renderRawRow = (entry, line, isHeader = false) => {
+          const summary = rawSummary(entry);
+          const json = pretty(entry, true);
+          const id = entry.id || (isHeader ? "session" : "");
+          const type = entry.type || "unknown";
+          return `
+            <li>
+              <details class="raw-row${isHeader ? " is-header" : ""}" data-search="${esc(clampText(safeString(entry).toLowerCase(), 40_000))}">
+                <summary>
+                  <span class="ln">#${fmtNum(line)}</span>
+                  <span class="raw-type" title="${esc(type)}">${esc(type)}</span>
+                  <span class="raw-id" title="${esc(id)}">${esc(id)}</span>
+                  <span class="raw-sum">${esc(summary)}</span>
+                  <span class="raw-time">${esc(fmtTime(entryTime(entry)))}</span>
+                </summary>
+                <pre class="raw-json" tabindex="0">${esc(json)}</pre>
+              </details>
+            </li>`;
+        };
+
+        const renderRaw = (session) => {
+          const rows = [];
+          if (session.headerIsReal) {
+            rows.push(renderRawRow(session.header, session.header._line || 1, true));
+          }
+          const startLine = session.isJsonl ? 1 : session.headerIsReal ? 2 : 1;
+          session.entries.forEach((entry, index) => {
+            rows.push(renderRawRow(entry, entry._line || index + startLine));
+          });
+          return `
+            <div class="raw-view">
+              <p class="teach-note">
+                JSONL 是“一行一个 JSON 对象”的追加式日志。点任意一行展开原始内容；长字符串（例如图片 base64）会截断显示。
+                <code>id</code> 是这条记录的身份，<code>parentId</code> 指向上一条，用来组成树。
+              </p>
+              <ol class="raw-list">${rows.join("")}</ol>
+            </div>`;
+        };
+
+        // ============================================================
+        // 状态与交互
+        // ============================================================
+
+        const state = {
+          sessions: [],
+          active: -1,
+          q: "",
+          view: "timeline",
+          filters: { system: true, thinking: true, toolOutput: true, events: true },
+        };
+
+        const landing = $("#landing");
+        const app = $("#app");
+        const fileInput = $("#file-input");
+        const folderInput = $("#folder-input");
+        const sessionSelect = $("#session-select");
+        const dropOverlay = $("#drop-overlay");
+        const toastEl = $("#toast");
+        const toastText = $("#toast span");
+        const rawDialog = $("#raw-dialog");
+        const rawPre = $("#raw-pre");
+        const rawTitle = $("#raw-title");
+        const rawSub = $("#raw-sub");
+        const loadStatus = $("#load-status");
+        let toastTimer = 0;
+        let scrollObserver = null;
+
+        const activeSession = () => state.sessions[state.active] || null;
+
+        const toast = (message) => {
+          toastText.textContent = message;
+          toastEl.classList.add("show");
+          window.clearTimeout(toastTimer);
+          toastTimer = window.setTimeout(() => toastEl.classList.remove("show"), 2200);
+        };
+
+        const announce = (message) => {
+          loadStatus.textContent = message;
+        };
+
+        const copyText = async (text) => {
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.writeText(text);
+              return true;
+            }
+          } catch {
+            // 回退到 execCommand。
+          }
+          try {
+            const area = document.createElement("textarea");
+            area.value = text;
+            area.setAttribute("readonly", "");
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.select();
+            const ok = document.execCommand("copy");
+            area.remove();
+            return ok;
+          } catch {
+            return false;
+          }
+        };
+
+        const applyFilters = () => {
+          app.classList.toggle("hide-system", !state.filters.system);
+          app.classList.toggle("hide-thinking", !state.filters.thinking);
+          app.classList.toggle("hide-tool-output", !state.filters.toolOutput);
+          app.classList.toggle("hide-events", !state.filters.events);
+        };
+
+        const applySearch = () => {
+          const query = state.q.trim().toLowerCase();
+          const scope = state.view === "raw" ? $("#view-raw") : $("#view-timeline");
+          if (!scope) return;
+
+          const rows = $$(".step, .raw-row", scope);
+          for (const row of rows) {
+            const hit = !query || (row.dataset.search || "").includes(query);
+            row.classList.toggle("is-hidden", !hit);
+            if (query && hit) {
+              // 命中的内容如果藏在折叠块里，顺手展开它。
+              $$("details", row).forEach((details) => {
+                if (!details.open && (details.textContent || "").toLowerCase().includes(query)) {
+                  details.open = true;
+                }
+              });
+            }
+          }
+
+          $$(".round", scope).forEach((round) => {
+            const steps = $$(".step", round);
+            const visible = steps.some((step) => !step.classList.contains("is-hidden"));
+            round.classList.toggle("is-hidden", !!query && steps.length > 0 && !visible);
+            if (query) {
+              round.classList.remove("is-collapsed");
+              const toggle = $("[data-round-toggle]", round);
+              if (toggle) {
+                toggle.textContent = "折叠本轮";
+                toggle.setAttribute("aria-expanded", "true");
+              }
+            }
+          });
+
+          const count = $("#search-count");
+          if (count) {
+            if (!query) {
+              count.textContent = "";
+            } else {
+              const matched = rows.filter((row) => !row.classList.contains("is-hidden")).length;
+              count.textContent = matched ? `${matched} 条匹配` : "无匹配";
+            }
+          }
+          announce(query ? `搜索：${query}` : "搜索已清除");
+        };
+
+        const setView = (view) => {
+          state.view = view === "raw" ? "raw" : "timeline";
+          const timeline = $("#view-timeline");
+          const raw = $("#view-raw");
+          if (timeline) timeline.hidden = state.view !== "timeline";
+          if (raw) raw.hidden = state.view !== "raw";
+          $$("[data-view]").forEach((button) => {
+            const active = button.dataset.view === state.view;
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-pressed", String(active));
+          });
+          applySearch();
+        };
+
+        const updateSessionSelect = () => {
+          if (!sessionSelect) return;
+          sessionSelect.innerHTML = "";
+          if (state.sessions.length <= 1) {
+            sessionSelect.hidden = true;
+            return;
+          }
+          sessionSelect.hidden = false;
+          state.sessions.forEach((session, index) => {
+            const option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = `${session.analysis.title} · ${session.filename}`;
+            option.selected = index === state.active;
+            sessionSelect.append(option);
+          });
+        };
+
+        const setupScrollSpy = () => {
+          if (scrollObserver) scrollObserver.disconnect();
+          const links = $$("[data-round-link]");
+          if (!links.length || !("IntersectionObserver" in window)) return;
+          const map = new Map(links.map((link) => [link.dataset.roundLink, link]));
+          scrollObserver = new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                links.forEach((link) => link.classList.remove("active"));
+                const link = map.get(entry.target.dataset.round);
+                if (link) link.classList.add("active");
+              }
+            },
+            { rootMargin: "-90px 0px -65% 0px", threshold: 0 },
+          );
+          $$(".round").forEach((round) => scrollObserver.observe(round));
+        };
+
+        const render = () => {
+          const session = activeSession();
+          if (!session) {
+            landing.hidden = false;
+            app.hidden = true;
+            app.innerHTML = "";
+            updateSessionSelect();
+            window.scrollTo({ top: 0, behavior: "auto" });
+            return;
+          }
+
+          landing.hidden = true;
+          app.hidden = false;
+          app.innerHTML = renderSession(session);
+          updateSessionSelect();
+          applyFilters();
+          applySearch();
+          setupScrollSpy();
+          announce(`已加载 ${session.filename}`);
+          window.scrollTo({ top: 0, behavior: "auto" });
+        };
+
+        const addSession = (session) => {
+          const index = state.sessions.findIndex((candidate) => candidate.key === session.key);
+          if (index >= 0) {
+            state.sessions[index] = session;
+            state.active = index;
+          } else {
+            state.sessions.push(session);
+            state.active = state.sessions.length - 1;
+          }
+        };
+
+        const loadFileList = async (files) => {
+          const list = [...files].filter((file) => /\.(jsonl|ndjson)$/i.test(file.name));
+          if (!list.length) {
+            toast("没有找到 .jsonl 会话文件");
+            return;
+          }
+          // 文件名以 ISO 时间戳开头；倒序排，最近一次会话优先展示。
+          list.sort((a, b) => b.name.localeCompare(a.name));
+
+          let loaded = 0;
+          let firstKey = null;
+          for (const file of list) {
+            try {
+              const text = await file.text();
+              const filename = file.webkitRelativePath || file.name;
+              const session = makeSession(parseSession(text), filename, false);
+              addSession(session);
+              if (!firstKey) firstKey = session.key;
+              loaded += 1;
+            } catch (error) {
+              console.warn(`[session viewer] ${file.name}:`, error);
+              toast(`${file.name} 解析失败：${error.message}`);
+            }
+          }
+          if (loaded) {
+            const firstIndex = state.sessions.findIndex((session) => session.key === firstKey);
+            if (firstIndex >= 0) state.active = firstIndex;
+            render();
+            toast(loaded > 1 ? `已加载 ${loaded} 个会话文件` : "会话已加载");
+          }
+        };
+
+        const loadDemo = () => {
+          const session = makeSession(
+            { header: DEMO_HEADER, entries: JSON.parse(JSON.stringify(DEMO_ENTRIES)), errors: [], isJsonl: false },
+            "内置示例.jsonl",
+            true,
+          );
+          addSession(session);
+          render();
+          toast("已加载内置示例会话");
+        };
+
+        const clearAll = () => {
+          state.sessions = [];
+          state.active = -1;
+          render();
+          toast("已清除所有会话");
+        };
+
+        const openRaw = (id) => {
+          const session = activeSession();
+          if (!session || !rawDialog || !rawPre) return;
+
+          let entry = null;
+          let line = "";
+          if (id === "__header__") {
+            entry = session.header;
+            line = `line ${session.header._line || 1}`;
+            rawTitle.textContent = "会话头（session）";
+          } else {
+            entry = session.analysis.byId.get(id);
+            if (!entry && Array.isArray(session.entries)) {
+              entry = session.entries.find((candidate) => candidate.id === id) || null;
+            }
+            if (!entry) {
+              toast("没有找到这条 entry");
+              return;
+            }
+            line = entry._line ? `line ${entry._line}` : `entry #${(entry._idx ?? 0) + 1}`;
+            rawTitle.textContent = `entry · ${entry.type || "unknown"}`;
+          }
+
+          rawPre.textContent = pretty(entry, true);
+          rawSub.textContent = `${line} · id ${entry.id || "—"} · parentId ${entry.parentId ?? "null"}`;
+          if (typeof rawDialog.showModal === "function") rawDialog.showModal();
+          else rawDialog.setAttribute("open", "");
+        };
+
+        const closeRaw = () => {
+          if (!rawDialog) return;
+          if (typeof rawDialog.close === "function") rawDialog.close();
+          else rawDialog.removeAttribute("open");
+        };
+
+        // ============================================================
+        // 事件绑定
+        // ============================================================
+
+        document.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+
+          const roundToggle = target.closest("[data-round-toggle]");
+          if (roundToggle) {
+            const round = roundToggle.closest(".round");
+            if (round) {
+              const collapsed = round.classList.toggle("is-collapsed");
+              roundToggle.textContent = collapsed ? "展开本轮" : "折叠本轮";
+              roundToggle.setAttribute("aria-expanded", String(!collapsed));
+            }
+            return;
+          }
+
+          const viewButton = target.closest("[data-view]");
+          if (viewButton) {
+            setView(viewButton.dataset.view);
+            return;
+          }
+
+          const rawTarget = target.closest("[data-raw]");
+          if (rawTarget) {
+            openRaw(rawTarget.dataset.raw);
+            return;
+          }
+
+          const actionTarget = target.closest("[data-action]");
+          if (actionTarget) {
+            const action = actionTarget.dataset.action;
+            if (action === "pick") {
+              fileInput.click();
+              return;
+            }
+            if (action === "pick-folder") {
+              if (folderInput) folderInput.click();
+              return;
+            }
+            if (action === "demo") {
+              loadDemo();
+              return;
+            }
+            if (action === "clear") {
+              clearAll();
+              return;
+            }
+            if (action === "expand") {
+              if (state.view === "raw") {
+                toast("原始视图请逐条展开，避免一次渲染过多 JSON");
+                return;
+              }
+              $$("#view-timeline details").forEach((details) => (details.open = true));
+              return;
+            }
+            if (action === "collapse") {
+              $$("#app details").forEach((details) => (details.open = false));
+              return;
+            }
+            if (action === "close-raw") {
+              closeRaw();
+              return;
+            }
+            if (action === "copy-raw") {
+              copyText(rawPre.textContent || "").then((ok) => toast(ok ? "原始 JSON 已复制" : "复制失败，请手动选择文本"));
+              return;
+            }
+          }
+
+          const dropzone = target.closest("#dropzone");
+          if (dropzone && !target.closest("button") && !target.closest("a") && !target.closest("label")) {
+            fileInput.click();
+          }
+        });
+
+        document.addEventListener("input", (event) => {
+          if (event.target && event.target.id === "search") {
+            state.q = event.target.value;
+            applySearch();
+          }
+        });
+
+        document.addEventListener("change", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          if (target.matches("[data-filter]")) {
+            state.filters[target.dataset.filter] = target.checked;
+            applyFilters();
+            applySearch();
+          }
+        });
+
+        if (sessionSelect) {
+          sessionSelect.addEventListener("change", () => {
+            state.active = Number(sessionSelect.value);
+            render();
+          });
+        }
+
+        if (fileInput) {
+          fileInput.addEventListener("change", () => {
+            const files = fileInput.files ? [...fileInput.files] : [];
+            fileInput.value = "";
+            loadFileList(files);
+          });
+        }
+
+        if (folderInput) {
+          folderInput.addEventListener("change", () => {
+            const files = folderInput.files ? [...folderInput.files] : [];
+            folderInput.value = "";
+            loadFileList(files);
+          });
+        }
+
+        if (rawDialog) {
+          rawDialog.addEventListener("click", (event) => {
+            if (event.target === rawDialog) closeRaw();
+          });
+        }
+
+        // 拖拽：整个页面都可以接收。
+        const hasFiles = (event) => {
+          const types = event.dataTransfer && event.dataTransfer.types;
+          return types && [...types].includes("Files");
+        };
+        let dragDepth = 0;
+        window.addEventListener("dragenter", (event) => {
+          if (!hasFiles(event)) return;
+          event.preventDefault();
+          dragDepth += 1;
+          dropOverlay.hidden = false;
+        });
+        window.addEventListener("dragover", (event) => {
+          if (!hasFiles(event)) return;
+          event.preventDefault();
+          if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+        });
+        window.addEventListener("dragleave", (event) => {
+          if (event.relatedTarget === null) {
+            dragDepth = 0;
+            dropOverlay.hidden = true;
+            return;
+          }
+          if (!hasFiles(event)) return;
+          dragDepth = Math.max(0, dragDepth - 1);
+          if (!dragDepth) dropOverlay.hidden = true;
+        });
+        window.addEventListener("drop", (event) => {
+          event.preventDefault();
+          dragDepth = 0;
+          dropOverlay.hidden = true;
+          if (event.dataTransfer && event.dataTransfer.files.length) {
+            loadFileList(event.dataTransfer.files);
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+            const tag = document.activeElement && document.activeElement.tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+            const search = $("#search");
+            if (search && !app.hidden) {
+              event.preventDefault();
+              search.focus();
+            }
+          }
+        });
+
+        // ============================================================
+        // 内置示例（虚构，用来说明格式与渲染）
+        // ============================================================
+
+        const DEMO_HEADER = {
+          type: "session",
+          version: 3,
+          id: "demo-01a2b3c4",
+          timestamp: "2026-11-28T02:10:00.000Z",
+          cwd: "/home/code/pi-agent-learning",
+        };
+
+        const DEMO_ENTRIES = [
+          {
+            type: "model_change",
+            id: "m0demo01",
+            parentId: null,
+            timestamp: "2026-11-28T02:10:00.100Z",
+            provider: "anthropic",
+            modelId: "claude-sonnet-4-5",
+          },
+          {
+            type: "thinking_level_change",
+            id: "t0demo01",
+            parentId: "m0demo01",
+            timestamp: "2026-11-28T02:10:00.100Z",
+            thinkingLevel: "medium",
+          },
+          {
+            type: "message",
+            id: "s0demo01",
+            parentId: "t0demo01",
+            timestamp: "2026-11-28T02:10:00.120Z",
+            message: {
+              role: "system",
+              content: "",
+              sections: {
+                preamble: "You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.",
+                tools: "<tools>\n- read: Read file contents\n- bash: Execute bash commands\n- edit: Make precise file edits\n- write: Create or overwrite files\n</tools>",
+                rules: "<rules>\n- Use bash for file operations like ls, rg, find\n- Use read to examine files instead of cat or sed\n- Use edit for targeted changes\n- Be concise in your responses\n</rules>",
+                cwd: "<cwd>\n/home/code/pi-agent-learning\n</cwd>",
+              },
+              toolsAdded: [
+                {
+                  name: "bash",
+                  description: "Execute a bash command in the session working directory.",
+                  parameters: {
+                    type: "object",
+                    required: ["command"],
+                    properties: {
+                      command: { type: "string", description: "The command to execute" },
+                      timeout: { type: "number", description: "Timeout in seconds" },
+                    },
+                  },
+                },
+                {
+                  name: "read",
+                  description: "Read the contents of a file. Supports text files and images.",
+                  parameters: {
+                    type: "object",
+                    required: ["path"],
+                    properties: {
+                      path: { type: "string", description: "Path to the file to read" },
+                      offset: { type: "number", description: "Line number to start reading from" },
+                      limit: { type: "number", description: "Maximum number of lines to read" },
+                    },
+                  },
+                },
+                {
+                  name: "edit",
+                  description: "Make precise file edits with exact text replacement.",
+                  parameters: {
+                    type: "object",
+                    required: ["path", "edits"],
+                    properties: {
+                      path: { type: "string", description: "Path to the file to edit" },
+                      edits: {
+                        type: "array",
+                        description: "List of { oldText, newText } edits",
+                        items: {
+                          type: "object",
+                          required: ["oldText", "newText"],
+                          properties: {
+                            oldText: { type: "string" },
+                            newText: { type: "string" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+              timestamp: Date.parse("2026-11-28T02:10:00.120Z"),
+            },
+          },
+          {
+            type: "message",
+            id: "u0demo01",
+            parentId: "s0demo01",
+            timestamp: "2026-11-28T02:10:06.000Z",
+            message: {
+              role: "user",
+              content: [{ type: "text", text: "帮我看一下 ziliao 目录里有哪些页面，再把 index.html 的标题改一下，加上“会话回放”。" }],
+              timestamp: Date.parse("2026-11-28T02:10:06.000Z"),
+            },
+          },
+          {
+            type: "message",
+            id: "a0demo01",
+            parentId: "u0demo01",
+            timestamp: "2026-11-28T02:10:06.600Z",
+            message: {
+              role: "assistant",
+              content: [
+                {
+                  type: "thinking",
+                  thinking:
+                    "用户要两件事：先列 ziliao 下的页面，再改 index.html 的标题。先跑一条 ls 看清楚文件，再决定 edit 的 oldText。",
+                },
+                {
+                  type: "toolCall",
+                  id: "call_demo_001",
+                  name: "bash",
+                  arguments: { command: "ls -1 ziliao/*.html | xargs -n1 basename", timeout: 20 },
+                },
+              ],
+              api: "anthropic-messages",
+              provider: "anthropic",
+              model: "claude-sonnet-4-5",
+              usage: {
+                input: 3120,
+                output: 78,
+                cacheRead: 0,
+                cacheWrite: 0,
+                reasoning: 46,
+                totalTokens: 3198,
+                cost: { input: 0.00936, output: 0.00117, cacheRead: 0, cacheWrite: 0, total: 0.01053, totalFromProvider: false },
+              },
+              stopReason: "toolUse",
+              timestamp: Date.parse("2026-11-28T02:10:06.600Z"),
+              durationMs: 2600,
+              thinkingLevel: "medium",
+            },
+          },
+          {
+            type: "message",
+            id: "r0demo01",
+            parentId: "a0demo01",
+            timestamp: "2026-11-28T02:10:07.000Z",
+            message: {
+              role: "toolResult",
+              toolCallId: "call_demo_001",
+              toolName: "bash",
+              content: [
+                {
+                  type: "text",
+                  text: "advanced.html\ncareer.html\ncli.html\nindex.html\nproduction.html\nsdk.html\nsession.html\nweb.html",
+                },
+              ],
+              isError: false,
+              durationMs: 86,
+              timestamp: Date.parse("2026-11-28T02:10:07.000Z"),
+            },
+          },
+          {
+            type: "message",
+            id: "a0demo02",
+            parentId: "r0demo01",
+            timestamp: "2026-11-28T02:10:09.400Z",
+            message: {
+              role: "assistant",
+              content: [
+                {
+                  type: "text",
+                  text: "`ziliao/` 下现在有 8 个页面：\n\n- `advanced.html`、`cli.html`、`index.html`\n- `production.html`、`sdk.html`、`web.html`\n- `career.html`、`session.html`\n\n接下来改 `index.html` 的标题。",
+                },
+                {
+                  type: "toolCall",
+                  id: "call_demo_002",
+                  name: "edit",
+                  arguments: {
+                    path: "ziliao/index.html",
+                    edits: [
+                      {
+                        oldText: "<title>Pi Agent 入门实验室：从看懂代码到做出自己的 Agent</title>",
+                        newText: "<title>Pi Agent 入门实验室：从看懂代码到做出自己的 Agent · 会话回放</title>",
+                      },
+                    ],
+                  },
+                },
+              ],
+              api: "anthropic-messages",
+              provider: "anthropic",
+              model: "claude-sonnet-4-5",
+              usage: {
+                input: 3402,
+                output: 142,
+                cacheRead: 3072,
+                cacheWrite: 0,
+                reasoning: 30,
+                totalTokens: 3544,
+                cost: { input: 0.001, output: 0.00213, cacheRead: 0.00092, cacheWrite: 0, total: 0.00405, totalFromProvider: false },
+              },
+              stopReason: "toolUse",
+              timestamp: Date.parse("2026-11-28T02:10:09.400Z"),
+              durationMs: 3100,
+              thinkingLevel: "medium",
+            },
+          },
+          {
+            type: "message",
+            id: "r0demo02",
+            parentId: "a0demo02",
+            timestamp: "2026-11-28T02:10:09.500Z",
+            message: {
+              role: "toolResult",
+              toolCallId: "call_demo_002",
+              toolName: "edit",
+              content: [{ type: "text", text: "Successfully replaced 1 block(s) in ziliao/index.html." }],
+              details: {
+                diff: "--- a/ziliao/index.html\n+++ b/ziliao/index.html\n@@ -8,7 +8,7 @@\n     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n-    <title>Pi Agent 入门实验室：从看懂代码到做出自己的 Agent</title>\n+    <title>Pi Agent 入门实验室：从看懂代码到做出自己的 Agent · 会话回放</title>\n     <style>",
+              },
+              isError: false,
+              durationMs: 42,
+              timestamp: Date.parse("2026-11-28T02:10:09.500Z"),
+            },
+          },
+          {
+            type: "message",
+            id: "a0demo03",
+            parentId: "r0demo02",
+            timestamp: "2026-11-28T02:10:11.800Z",
+            message: {
+              role: "assistant",
+              content: [
+                {
+                  type: "text",
+                  text: "改好了。`ziliao/index.html` 的 `<title>` 现在带上了“会话回放”，diff 里能看到只动了这一行。",
+                },
+              ],
+              api: "anthropic-messages",
+              provider: "anthropic",
+              model: "claude-sonnet-4-5",
+              usage: {
+                input: 3608,
+                output: 48,
+                cacheRead: 3456,
+                cacheWrite: 0,
+                reasoning: 8,
+                totalTokens: 3656,
+                cost: { input: 0.00045, output: 0.00072, cacheRead: 0.00104, cacheWrite: 0, total: 0.00221, totalFromProvider: false },
+              },
+              stopReason: "stop",
+              timestamp: Date.parse("2026-11-28T02:10:11.800Z"),
+              durationMs: 1800,
+              thinkingLevel: "medium",
+            },
+          },
+          {
+            type: "custom",
+            id: "c0demo01",
+            parentId: "a0demo03",
+            timestamp: "2026-11-28T02:10:11.900Z",
+            customType: "agent-summary",
+            data: { commands: 1, reads: 0, edits: 1, writes: 0, others: 0, failed: 0, durationMs: 5900 },
+          },
+          {
+            type: "session_info",
+            id: "i0demo01",
+            parentId: "c0demo01",
+            timestamp: "2026-11-28T02:10:12.000Z",
+            name: "示例：看一眼 ziliao 目录并改标题",
+          },
+        ];
+
+        // 启动
+        render();
+      })();
+    </script>
+  </body>
+</html>

@@ -1052,6 +1052,7 @@
           <a href="web.html">实战篇 · 多用户 Web</a>
           <a href="production.html">生产篇 · 上线交付</a>
           <a href="career.html">求职篇 · 面试与作品集</a>
+          <a href="session.html">工具 · 会话回放</a>
         </div>
 
         <p class="toc-title">学习路线</p>
@@ -1805,7 +1806,7 @@ await resourceLoader.reload();</code></pre>
             <strong>主线项目 · DataAgent 第 5 步：</strong>
             把 <code>src/tools/query-sales.ts</code> 接进 <code>data-agent.ts</code>：
             <code>customTools: [querySalesTool]</code> 加 <code>tools: ["query_sales"]</code>。
-            到这里，Agent 第一次“能做事”了。
+            到这里，Agent 第一次“能做事”了——完整装配与工具控制见 6.2 / 6.3。
           </div>
 
           <figure class="diagram">
@@ -1912,6 +1913,84 @@ export const querySalesTool = defineTool({
             <strong>TypeBox 的边界：</strong>
             Pi 用 JSON Schema 兼容的校验器处理工具参数。基础的 <code>Type.String</code>、<code>Type.Number</code>、<code>Type.Object</code> 适合教学；不要假设 TypeBox 所有运行时扩展特性都一定会执行。
           </div>
+
+          <h3>6.2 把工具交给 Agent：注册 ≠ 自动可用</h3>
+          <p>
+            写完 <code>defineTool</code> 只是“定义了工具”，它还不在任何会话里。必须通过 <code>createAgentSession</code> 的
+            <code>customTools</code> 注册，再用 <code>tools</code> 决定暴露给模型哪些：
+          </p>
+          <div class="code-card">
+            <div class="code-head"><span>把工具接进会话</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="创建会话并注册、暴露自定义工具" tabindex="0"><code>import { createAgentSession } from "@earendil-works/pi-coding-agent";
+import { querySalesTool } from "./tools/query-sales.ts";
+
+const { session } = await createAgentSession({
+  model,
+  modelRuntime,
+  resourceLoader: loader,        // 第 05 课的提示词与资源
+  customTools: [querySalesTool], // 1. 注册：工具进入会话的工具表
+  tools: ["query_sales"],        // 2. 暴露：只把这个工具声明给模型
+  sessionManager: SessionManager.inMemory(),
+});</code></pre>
+            <div class="line-note"><strong>不写会怎样</strong><span>不传 <code>customTools</code>，工具根本不在请求里；注册了但没被 <code>tools</code> 放行（或被 <code>noTools</code> 关掉），模型同样看不到它。第 09 课的 <code>data-agent.ts</code> 就是这两行。</span></div>
+          </div>
+          <p>
+            一个容易误会的地方：<strong>工具不是靠系统提示词“告诉”模型的</strong>。工具通过请求的 tools 字段声明；<code>promptSnippet</code> 与
+            <code>promptGuidelines</code> 只是往<strong>默认</strong>系统提示词的 Tools / Guidelines 段加文字——你一旦用了 <code>customPrompt</code>（第 05 课），
+            那两段不生成，但工具声明照旧发送。所以“模型怎么知道有这个工具”要看声明，不要只看提示词。
+          </p>
+
+          <h3>6.3 控制工具：注册、暴露、调用是四层</h3>
+          <p>同一个“工具开关”，在 SDK 里其实分成四层，选错层行为就会错：</p>
+          <div class="table-wrap">
+            <table>
+              <caption>工具的四层控制（1.6.1 · sdk.d.ts / agent-session.d.ts / extensions/types.d.ts）</caption>
+              <thead><tr><th scope="col">层</th><th scope="col">用什么</th><th scope="col">效果</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">注册</th><td><code>customTools: [...]</code></td><td>工具进入会话的工具表，但还不一定对模型可见。</td></tr>
+                <tr><th scope="row">暴露 / 声明</th><td><code>tools</code> 允许清单、<code>excludeTools</code> 拒绝清单、<code>noTools</code></td><td>决定哪些工具出现在请求的 tools 字段里，也就是模型“看得见”什么。</td></tr>
+                <tr><th scope="row">运行时调整</th><td><code>session.setActiveToolsByName([...])</code>、扩展里的 <code>ctx.setActiveTools([...])</code></td><td>会话中途换工具集，例如切到“只读模式”再切回来。</td></tr>
+                <tr><th scope="row">每次请求改写</th><td><code>ToolDefinition.prepareLoadout(loadout)</code></td><td>改写给模型看的描述，或隐藏某些声明（工具仍可被 <code>ctx.executeTool()</code> 调用）。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ul>
+            <li><code>tools: ["a", "b"]</code> 是<strong>允许清单</strong>（只留这些）；空数组等于一个都不给，连 MCP 工具也关；支持 <code>*</code> 通配。</li>
+            <li>只写 <code>+name</code> / <code>-name</code> 时<strong>不是允许清单</strong>，而是在默认工具集上增删；和普通名字混写会直接抛错。</li>
+            <li><code>excludeTools</code> 在 <code>tools</code> 之后生效，适合“允许清单里再剔一个”。</li>
+            <li>默认内置工具是 <code>read / bash / edit / write</code>。<code>noTools: "builtin"</code> 只去掉它们、保留自定义与扩展工具；<code>noTools: "all"</code> 全关。</li>
+            <li>中途改激活工具集，会触发一次工具声明更新（第 03 课里合成的 system 消息，<code>toolsAdded</code> / <code>toolsRemoved</code>），不是静默生效。</li>
+          </ul>
+          <div class="code-card">
+            <div class="code-head"><span>运行时切换工具集（只读模式）</span><button class="copy-button" type="button">复制</button></div>
+            <pre role="region" aria-label="使用 setActiveToolsByName 切换工具集" tabindex="0"><code>// 进入只读模式：模型只能看到查询工具
+session.setActiveToolsByName(["query_sales"]);
+
+// 需要写操作时再恢复
+session.setActiveToolsByName(["query_sales", "create_ticket"]);</code></pre>
+            <div class="line-note"><strong>为什么用运行时切换而不是重建 session</strong><span>重建会丢上下文和会话历史；切换工具集只改变“声明给模型的工具”，消息与状态都保留。</span></div>
+          </div>
+          <div class="callout">
+            <strong>和第 07 课的 <code>tool_call</code> 拦截怎么分工：</strong>
+            6.3 管“这个工具能不能出现、能不能用”（工具集层）；<code>pi.on("tool_call")</code> 管“这一次调用让不让跑”（单次调用层，返回 <code>block: true</code>）。
+            一个决定“有没有这只手”，一个决定“这次伸不伸出去”。
+          </div>
+
+          <details class="exercise">
+            <summary>验收清单 · AI 写完一个工具，你要能回答这 7 个问题</summary>
+            <div class="exercise-body">
+              <ol>
+                <li>模型凭什么知道该用它？（description、schema，是否进入默认提示词）</li>
+                <li>模型能传进来的最坏参数是什么？schema 挡得住吗？</li>
+                <li>越权数据在 execute 的哪一行被挡住？</li>
+                <li>返回给模型的文本有多大？上限在哪？</li>
+                <li>失败是 <code>isError</code> 还是异常？Agent 下一轮会怎么处理？</li>
+                <li>取消信号检查了吗？能并发执行吗？</li>
+                <li>它对哪些用户、在哪个阶段可见？靠哪个开关控制？</li>
+              </ol>
+              <p><strong>检查点：</strong>第 1、3、7 题答不上来，说明你只拿到了“实现”，没拿到“契约”——这种代码不要直接合进你的 Agent。</p>
+            </div>
+          </details>
 
           <details class="exercise">
             <summary>练习 6 · 给工具加一个筛选条件</summary>
